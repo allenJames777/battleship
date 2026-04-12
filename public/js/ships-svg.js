@@ -1,4 +1,5 @@
 // ── Ship SVGs — Pirate & Navy Factions ────────────────────
+// All ships drawn HORIZONTALLY. Hulls fill full height (to h*.97).
 
 const ShipFactions = {
 
@@ -15,58 +16,57 @@ const ShipFactions = {
         svg: (w, h) => `
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">
             <defs>
-              <linearGradient id="p-sunny-hull" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="ps-hull" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stop-color="#b45309"/>
-                <stop offset="100%" stop-color="#92400e"/>
+                <stop offset="100%" stop-color="#7c2d12"/>
               </linearGradient>
             </defs>
-            <path d="M${w*.05},${h*.55} Q${w*0},${h*.9} ${w*.15},${h*.85} L${w*.85},${h*.85} Q${w},${h*.9} ${w*.95},${h*.55} Z" fill="url(#p-sunny-hull)" stroke="#78350f" stroke-width="1"/>
-            <rect x="${w*.1}" y="${h*.4}" width="${w*.8}" height="${h*.18}" rx="3" fill="#d97706"/>
-            <rect x="${w*.35}" y="${h*.18}" width="${w*.3}" height="${h*.25}" rx="3" fill="#fbbf24" stroke="#b45309" stroke-width=".5"/>
-            <line x1="${w*.5}" y1="${h*.05}" x2="${w*.5}" y2="${h*.4}" stroke="#78350f" stroke-width="2"/>
-            <path d="M${w*.3},${h*.08} L${w*.5},${h*.05} L${w*.5},${h*.3} L${w*.28},${h*.28} Z" fill="white" opacity=".9"/>
-            <text x="${w*.4}" y="${h*.2}" text-anchor="middle" font-size="${Math.min(w,h)*.07}" fill="#1f2937">☠</text>
-            <circle cx="${w*.92}" cy="${h*.45}" r="${Math.min(w,h)*.06}" fill="#fbbf24" stroke="#b45309" stroke-width="1"/>
-            <path d="M${w*.95},${h*.42} Q${w},{h*.38} ${w*.96},${h*.35}" stroke="#f59e0b" stroke-width="2" fill="none"/>
-            <rect x="${w*.12}" y="${h*.42}" width="${w*.2}" height="${h*.08}" rx="1" fill="#22c55e" opacity=".6"/>
+            <path d="M${w*.04},${h*.45} Q${w*.01},${h*.97} ${w*.12},${h*.97} L${w*.88},${h*.97} Q${w*.99},${h*.97} ${w*.96},${h*.45} Z" fill="url(#ps-hull)" stroke="#78350f" stroke-width="1"/>
+            <rect x="${w*.08}" y="${h*.32}" width="${w*.84}" height="${h*.16}" rx="2" fill="#d97706"/>
+            <rect x="${w*.35}" y="${h*.1}" width="${w*.3}" height="${h*.24}" rx="3" fill="#fbbf24" stroke="#b45309" stroke-width=".5"/>
+            <line x1="${w*.5}" y1="${h*.02}" x2="${w*.5}" y2="${h*.32}" stroke="#78350f" stroke-width="2"/>
+            <path d="M${w*.3},${h*.05} L${w*.5},${h*.02} L${w*.5},${h*.25} L${w*.28},${h*.23} Z" fill="white" opacity=".85"/>
+            <text x="${w*.4}" y="${h*.16}" text-anchor="middle" font-size="${Math.min(w,h)*.08}" fill="#1f2937">☠</text>
+            <circle cx="${w*.92}" cy="${h*.38}" r="${Math.min(w,h)*.06}" fill="#fbbf24" stroke="#b45309" stroke-width="1"/>
+            <rect x="${w*.1}" y="${h*.34}" width="${w*.18}" height="${h*.07}" rx="1" fill="#22c55e" opacity=".5"/>
           </svg>`
       },
       'Battleship': {
         label: 'Moby Dick',
-        color: '#e2e8f0',
+        color: '#c8d8e8',
         svg: (w, h) => `
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">
             <defs>
-              <linearGradient id="p-moby" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#e2e8f0"/>
-                <stop offset="100%" stop-color="#94a3b8"/>
+              <linearGradient id="pm-hull" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#dce6f0"/>
+                <stop offset="100%" stop-color="#a8b8cc"/>
               </linearGradient>
             </defs>
-            <path d="M${w*.03},${h*.55} Q0,${h*.92} ${w*.12},${h*.88} L${w*.88},${h*.88} Q${w},${h*.92} ${w*.97},${h*.55} Z" fill="url(#p-moby)" stroke="#64748b" stroke-width="1"/>
-            <ellipse cx="${w*.93}" cy="${h*.5}" rx="${w*.08}" ry="${h*.12}" fill="#e2e8f0" stroke="#64748b" stroke-width="1"/>
-            <circle cx="${w*.96}" cy="${h*.46}" r="2" fill="#1e293b"/>
-            <rect x="${w*.08}" y="${h*.4}" width="${w*.84}" height="${h*.18}" rx="3" fill="#cbd5e1"/>
-            <line x1="${w*.3}" y1="${h*.05}" x2="${w*.3}" y2="${h*.4}" stroke="#475569" stroke-width="2"/>
-            <path d="M${w*.15},${h*.08} L${w*.3},${h*.05} L${w*.3},${h*.28} L${w*.13},${h*.26} Z" fill="#e2e8f0"/>
-            <line x1="${w*.6}" y1="${h*.08}" x2="${w*.6}" y2="${h*.4}" stroke="#475569" stroke-width="2"/>
-            <path d="M${w*.45},${h*.1} L${w*.6},${h*.08} L${w*.6},${h*.3} L${w*.43},${h*.28} Z" fill="#e2e8f0"/>
-            <text x="${w*.38}" y="${h*.22}" text-anchor="middle" font-size="${Math.min(w,h)*.09}" fill="#7c3aed" font-weight="bold">✚</text>
+            <path d="M${w*.03},${h*.45} Q${w*.01},${h*.97} ${w*.1},${h*.97} L${w*.9},${h*.97} Q${w*.99},${h*.97} ${w*.97},${h*.45} Z" fill="url(#pm-hull)" stroke="#5060aa" stroke-width="1.5"/>
+            <ellipse cx="${w*.94}" cy="${h*.42}" rx="${w*.07}" ry="${h*.1}" fill="#dce6f0" stroke="#5060aa" stroke-width="1"/>
+            <circle cx="${w*.96}" cy="${h*.38}" r="2" fill="#1e293b"/>
+            <rect x="${w*.06}" y="${h*.32}" width="${w*.86}" height="${h*.16}" rx="2" fill="#c0d0e4"/>
+            <line x1="${w*.3}" y1="${h*.04}" x2="${w*.3}" y2="${h*.32}" stroke="#5060aa" stroke-width="2"/>
+            <path d="M${w*.15},${h*.06} L${w*.3},${h*.04} L${w*.3},${h*.24} L${w*.13},${h*.22} Z" fill="#e8f0ff"/>
+            <line x1="${w*.6}" y1="${h*.06}" x2="${w*.6}" y2="${h*.32}" stroke="#5060aa" stroke-width="2"/>
+            <path d="M${w*.45},${h*.08} L${w*.6},${h*.06} L${w*.6},${h*.26} L${w*.43},${h*.24} Z" fill="#e8f0ff"/>
+            <text x="${w*.38}" y="${h*.18}" text-anchor="middle" font-size="${Math.min(w,h)*.09}" fill="#7c3aed" font-weight="bold">✚</text>
           </svg>`
       },
       'Cruiser': {
         label: 'Going Merry',
-        color: '#fef3c7',
+        color: '#f0d860',
         svg: (w, h) => `
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">
-            <path d="M${w*.05},${h*.55} Q0,${h*.9} ${w*.15},${h*.85} L${w*.85},${h*.85} Q${w},${h*.9} ${w*.95},${h*.55} Z" fill="#fcd34d" stroke="#b45309" stroke-width="1"/>
-            <rect x="${w*.1}" y="${h*.42}" width="${w*.8}" height="${h*.16}" rx="3" fill="#fde68a"/>
-            <rect x="${w*.25}" y="${h*.22}" width="${w*.35}" height="${h*.22}" rx="3" fill="white" stroke="#d97706" stroke-width=".5"/>
-            <rect x="${w*.32}" y="${h*.28}" width="${w*.08}" height="${h*.08}" rx="1" fill="#7dd3fc"/>
-            <rect x="${w*.44}" y="${h*.28}" width="${w*.08}" height="${h*.08}" rx="1" fill="#7dd3fc"/>
-            <line x1="${w*.5}" y1="${h*.05}" x2="${w*.5}" y2="${h*.42}" stroke="#92400e" stroke-width="2"/>
-            <path d="M${w*.3},${h*.07} L${w*.5},${h*.05} L${w*.5},${h*.32} L${w*.28},${h*.3} Z" fill="white"/>
-            <circle cx="${w*.9}" cy="${h*.42}" r="${Math.min(w,h)*.07}" fill="white" stroke="#d97706" stroke-width="1"/>
-            <circle cx="${w*.93}" cy="${h*.39}" r="${Math.min(w,h)*.02}" fill="#1e293b"/>
+            <path d="M${w*.04},${h*.45} Q${w*.01},${h*.97} ${w*.12},${h*.97} L${w*.88},${h*.97} Q${w*.99},${h*.97} ${w*.96},${h*.45} Z" fill="#e8b830" stroke="#a06010" stroke-width="1.5"/>
+            <rect x="${w*.08}" y="${h*.34}" width="${w*.84}" height="${h*.14}" rx="2" fill="#f0c840"/>
+            <rect x="${w*.25}" y="${h*.12}" width="${w*.35}" height="${h*.24}" rx="3" fill="#fff8e0" stroke="#c08020" stroke-width=".5"/>
+            <rect x="${w*.3}" y="${h*.18}" width="${w*.1}" height="${h*.08}" rx="1" fill="#60b0e0"/>
+            <rect x="${w*.44}" y="${h*.18}" width="${w*.1}" height="${h*.08}" rx="1" fill="#60b0e0"/>
+            <line x1="${w*.5}" y1="${h*.02}" x2="${w*.5}" y2="${h*.34}" stroke="#804010" stroke-width="2"/>
+            <path d="M${w*.3},${h*.05} L${w*.5},${h*.02} L${w*.5},${h*.26} L${w*.28},${h*.24} Z" fill="#fff0d0"/>
+            <circle cx="${w*.9}" cy="${h*.34}" r="${Math.min(w,h)*.07}" fill="#fff0d0" stroke="#c08020" stroke-width="1"/>
+            <circle cx="${w*.93}" cy="${h*.31}" r="${Math.min(w,h)*.02}" fill="#1e293b"/>
           </svg>`
       },
       'Submarine': {
@@ -75,19 +75,19 @@ const ShipFactions = {
         svg: (w, h) => `
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">
             <defs>
-              <linearGradient id="p-polar" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="pp-hull" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stop-color="#fde047"/>
-                <stop offset="100%" stop-color="#eab308"/>
+                <stop offset="100%" stop-color="#ca8a04"/>
               </linearGradient>
             </defs>
-            <ellipse cx="${w*.5}" cy="${h*.6}" rx="${w*.46}" ry="${h*.25}" fill="url(#p-polar)" stroke="#a16207" stroke-width="1"/>
-            <rect x="${w*.38}" y="${h*.25}" width="${w*.24}" height="${h*.2}" rx="4" fill="#facc15" stroke="#a16207" stroke-width=".8"/>
-            <line x1="${w*.5}" y1="${h*.08}" x2="${w*.5}" y2="${h*.25}" stroke="#78350f" stroke-width="2"/>
-            <rect x="${w*.47}" y="${h*.06}" width="${w*.06}" height="${h*.06}" rx="1" fill="#a16207"/>
-            <circle cx="${w*.5}" cy="${h*.6}" r="${Math.min(w,h)*.08}" fill="white" opacity=".8"/>
-            <text x="${w*.5}" y="${h*.64}" text-anchor="middle" font-size="${Math.min(w,h)*.1}" fill="#dc2626">♥</text>
-            <circle cx="${w*.25}" cy="${h*.58}" r="${Math.min(w,h)*.04}" fill="#7dd3fc" stroke="#a16207" stroke-width="1"/>
-            <circle cx="${w*.75}" cy="${h*.58}" r="${Math.min(w,h)*.04}" fill="#7dd3fc" stroke="#a16207" stroke-width="1"/>
+            <ellipse cx="${w*.5}" cy="${h*.55}" rx="${w*.47}" ry="${h*.38}" fill="url(#pp-hull)" stroke="#a16207" stroke-width="1"/>
+            <rect x="${w*.38}" y="${h*.1}" width="${w*.24}" height="${h*.22}" rx="4" fill="#facc15" stroke="#a16207" stroke-width=".8"/>
+            <line x1="${w*.5}" y1="${h*.02}" x2="${w*.5}" y2="${h*.1}" stroke="#78350f" stroke-width="2"/>
+            <rect x="${w*.47}" y="${h*.01}" width="${w*.06}" height="${h*.06}" rx="1" fill="#a16207"/>
+            <circle cx="${w*.5}" cy="${h*.55}" r="${Math.min(w,h)*.1}" fill="white" opacity=".7"/>
+            <text x="${w*.5}" y="${h*.6}" text-anchor="middle" font-size="${Math.min(w,h)*.12}" fill="#dc2626">♥</text>
+            <circle cx="${w*.22}" cy="${h*.52}" r="${Math.min(w,h)*.04}" fill="#7dd3fc" stroke="#a16207" stroke-width="1"/>
+            <circle cx="${w*.78}" cy="${h*.52}" r="${Math.min(w,h)*.04}" fill="#7dd3fc" stroke="#a16207" stroke-width="1"/>
           </svg>`
       },
       'Destroyer': {
@@ -95,22 +95,21 @@ const ShipFactions = {
         color: '#f97316',
         svg: (w, h) => `
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">
-            <path d="M${w*.08},${h*.5} Q0,${h*.88} ${w*.2},${h*.82} L${w*.8},${h*.82} Q${w},${h*.88} ${w*.92},${h*.5} Z" fill="#f97316" stroke="#c2410c" stroke-width="1"/>
-            <rect x="${w*.3}" y="${h*.32}" width="${w*.3}" height="${h*.2}" rx="3" fill="#fdba74" stroke="#c2410c" stroke-width=".5"/>
-            <path d="M${w*.05},${h*.45} Q${w*-.05},${h*.5} ${w*0},${h*.55}" fill="#ef4444" opacity=".8"/>
-            <path d="M${w*.08},${h*.42} Q${w*-.02},${h*.48} ${w*.03},${h*.55}" fill="#f97316" opacity=".7"/>
-            <text x="${w*.55}" y="${h*.48}" text-anchor="middle" font-size="${Math.min(w,h)*.15}" fill="#1e293b">♠</text>
+            <path d="M${w*.06},${h*.42} Q${w*.01},${h*.97} ${w*.15},${h*.97} L${w*.85},${h*.97} Q${w*.99},${h*.97} ${w*.94},${h*.42} Z" fill="#f97316" stroke="#c2410c" stroke-width="1"/>
+            <rect x="${w*.28}" y="${h*.2}" width="${w*.35}" height="${h*.24}" rx="3" fill="#fdba74" stroke="#c2410c" stroke-width=".5"/>
+            <path d="M${w*.04},${h*.38} Q${w*-.04},${h*.44} ${w*.01},${h*.5}" fill="#ef4444" opacity=".8"/>
+            <text x="${w*.55}" y="${h*.38}" text-anchor="middle" font-size="${Math.min(w,h)*.18}" fill="#1e293b">♠</text>
           </svg>`
       },
       'Patrol': {
         label: 'Mini Merry',
-        color: '#a78bfa',
+        color: '#c090ff',
         svg: (w, h) => `
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">
-            <path d="M${w*.1},${h*.5} Q${w*.05},${h*.85} ${w*.25},${h*.8} L${w*.75},${h*.8} Q${w*.95},${h*.85} ${w*.9},${h*.5} Z" fill="#c4b5fd" stroke="#7c3aed" stroke-width="1"/>
-            <line x1="${w*.5}" y1="${h*.15}" x2="${w*.5}" y2="${h*.5}" stroke="#5b21b6" stroke-width="1.5"/>
-            <path d="M${w*.5},${h*.15} L${w*.72},${h*.22} L${w*.5},${h*.3} Z" fill="#f472b6"/>
-            <text x="${w*.5}" y="${h*.65}" text-anchor="middle" font-size="${Math.min(w,h)*.22}" fill="#4c1d95">☠</text>
+            <path d="M${w*.08},${h*.4} Q${w*.03},${h*.95} ${w*.2},${h*.95} L${w*.8},${h*.95} Q${w*.97},${h*.95} ${w*.92},${h*.4} Z" fill="#c8a0ff" stroke="#8040d0" stroke-width="1.5"/>
+            <line x1="${w*.5}" y1="${h*.08}" x2="${w*.5}" y2="${h*.4}" stroke="#6020a0" stroke-width="1.5"/>
+            <path d="M${w*.5},${h*.08} L${w*.72},${h*.16} L${w*.5},${h*.24} Z" fill="#ff70b0"/>
+            <text x="${w*.5}" y="${h*.62}" text-anchor="middle" font-size="${Math.min(w,h)*.2}" fill="#4c1d95">☠</text>
           </svg>`
       }
     }
@@ -125,165 +124,119 @@ const ShipFactions = {
     ships: {
       'Carrier': {
         label: 'USS Marineford',
-        color: '#475569',
+        color: '#7090b0',
         svg: (w, h) => `
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">
             <defs>
-              <linearGradient id="n-carrier" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#64748b"/>
-                <stop offset="100%" stop-color="#334155"/>
+              <linearGradient id="nc-hull" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#8899aa"/>
+                <stop offset="100%" stop-color="#556677"/>
               </linearGradient>
             </defs>
-            <!-- Hull -->
-            <path d="M${w*.02},${h*.55} L${w*.1},${h*.88} L${w*.9},${h*.88} L${w*.98},${h*.55} Z" fill="url(#n-carrier)" stroke="#1e293b" stroke-width="1"/>
-            <!-- Flight deck -->
-            <rect x="${w*.05}" y="${h*.4}" width="${w*.9}" height="${h*.18}" rx="2" fill="#475569" stroke="#334155" stroke-width=".5"/>
-            <!-- Runway lines -->
-            <line x1="${w*.1}" y1="${h*.49}" x2="${w*.9}" y2="${h*.49}" stroke="#94a3b8" stroke-width=".5" stroke-dasharray="4 3"/>
-            <!-- Island/tower -->
-            <rect x="${w*.62}" y="${h*.2}" width="${w*.12}" height="${h*.22}" rx="2" fill="#64748b" stroke="#334155" stroke-width=".5"/>
-            <rect x="${w*.64}" y="${h*.12}" width="${w*.04}" height="${h*.1}" rx="1" fill="#475569"/>
-            <!-- Antenna -->
-            <line x1="${w*.66}" y1="${h*.04}" x2="${w*.66}" y2="${h*.12}" stroke="#94a3b8" stroke-width="1.5"/>
-            <circle cx="${w*.66}" cy="${h*.04}" r="2" fill="#22c55e"/>
-            <!-- Aircraft on deck -->
-            <path d="M${w*.15},${h*.44} l${w*.04},${h*.02} l${w*.02},-${h*.04} l${w*.02},${h*.04} l${w*.04},-${h*.02}" fill="none" stroke="#94a3b8" stroke-width="1"/>
-            <path d="M${w*.35},${h*.44} l${w*.04},${h*.02} l${w*.02},-${h*.04} l${w*.02},${h*.04} l${w*.04},-${h*.02}" fill="none" stroke="#94a3b8" stroke-width="1"/>
-            <!-- NAVY text -->
-            <text x="${w*.35}" y="${h*.76}" font-size="${Math.min(w,h)*.08}" fill="#94a3b8" font-weight="bold" letter-spacing="2">NAVY</text>
+            <path d="M${w*.02},${h*.45} L${w*.08},${h*.97} L${w*.92},${h*.97} L${w*.98},${h*.45} Z" fill="url(#nc-hull)" stroke="#334455" stroke-width="1"/>
+            <rect x="${w*.04}" y="${h*.32}" width="${w*.92}" height="${h*.16}" rx="2" fill="#6b8399" stroke="#4a6070" stroke-width=".5"/>
+            <line x1="${w*.08}" y1="${h*.4}" x2="${w*.92}" y2="${h*.4}" stroke="#b0c4d8" stroke-width=".5" stroke-dasharray="4 3"/>
+            <rect x="${w*.62}" y="${h*.1}" width="${w*.12}" height="${h*.24}" rx="2" fill="#8899aa" stroke="#4a6070" stroke-width=".5"/>
+            <line x1="${w*.68}" y1="${h*.02}" x2="${w*.68}" y2="${h*.1}" stroke="#b0c4d8" stroke-width="1.5"/>
+            <circle cx="${w*.68}" cy="${h*.02}" r="2" fill="#22c55e"/>
+            <text x="${w*.35}" y="${h*.72}" font-size="${Math.min(w,h)*.08}" fill="#d0dde8" font-weight="bold" letter-spacing="2">NAVY</text>
           </svg>`
       },
       'Battleship': {
         label: 'Dreadnought',
-        color: '#334155',
+        color: '#7090b0',
         svg: (w, h) => `
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">
             <defs>
-              <linearGradient id="n-dread" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#64748b"/>
-                <stop offset="100%" stop-color="#1e293b"/>
+              <linearGradient id="nd-hull" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#8899aa"/>
+                <stop offset="100%" stop-color="#556677"/>
               </linearGradient>
             </defs>
-            <!-- Hull -->
-            <path d="M${w*.04},${h*.6} Q0,${h*.9} ${w*.12},${h*.85} L${w*.88},${h*.85} Q${w},${h*.9} ${w*.96},${h*.6} Z" fill="url(#n-dread)" stroke="#0f172a" stroke-width="1"/>
-            <!-- Deck -->
-            <rect x="${w*.08}" y="${h*.45}" width="${w*.84}" height="${h*.18}" rx="2" fill="#475569"/>
-            <!-- Main turrets (3) -->
-            <rect x="${w*.12}" y="${h*.38}" width="${w*.1}" height="${h*.1}" rx="2" fill="#64748b" stroke="#334155" stroke-width=".5"/>
-            <line x1="${w*.17}" y1="${h*.32}" x2="${w*.17}" y2="${h*.38}" stroke="#475569" stroke-width="2"/>
-            <rect x="${w*.42}" y="${h*.38}" width="${w*.1}" height="${h*.1}" rx="2" fill="#64748b" stroke="#334155" stroke-width=".5"/>
-            <line x1="${w*.47}" y1="${h*.32}" x2="${w*.47}" y2="${h*.38}" stroke="#475569" stroke-width="2"/>
-            <rect x="${w*.72}" y="${h*.38}" width="${w*.1}" height="${h*.1}" rx="2" fill="#64748b" stroke="#334155" stroke-width=".5"/>
-            <line x1="${w*.77}" y1="${h*.32}" x2="${w*.77}" y2="${h*.38}" stroke="#475569" stroke-width="2"/>
-            <!-- Bridge tower -->
-            <rect x="${w*.53}" y="${h*.15}" width="${w*.14}" height="${h*.28}" rx="2" fill="#475569" stroke="#334155" stroke-width=".5"/>
-            <rect x="${w*.56}" y="${h*.2}" width="${w*.08}" height="${h*.06}" rx="1" fill="#7dd3fc" opacity=".5"/>
-            <!-- Antenna -->
-            <line x1="${w*.6}" y1="${h*.05}" x2="${w*.6}" y2="${h*.15}" stroke="#94a3b8" stroke-width="1.5"/>
-            <!-- Bow point -->
-            <path d="M${w*.88},${h*.6} L${w*.98},${h*.55} L${w*.96},${h*.6}" fill="#475569" stroke="#334155" stroke-width=".5"/>
+            <path d="M${w*.03},${h*.5} Q${w*.01},${h*.97} ${w*.1},${h*.97} L${w*.9},${h*.97} Q${w*.99},${h*.97} ${w*.97},${h*.5} Z" fill="url(#nd-hull)" stroke="#334455" stroke-width="1"/>
+            <rect x="${w*.06}" y="${h*.36}" width="${w*.88}" height="${h*.16}" rx="2" fill="#6b8399"/>
+            <rect x="${w*.1}" y="${h*.28}" width="${w*.1}" height="${h*.1}" rx="2" fill="#8899aa" stroke="#4a6070" stroke-width=".5"/>
+            <line x1="${w*.15}" y1="${h*.22}" x2="${w*.15}" y2="${h*.28}" stroke="#6b8399" stroke-width="2"/>
+            <rect x="${w*.42}" y="${h*.28}" width="${w*.1}" height="${h*.1}" rx="2" fill="#8899aa" stroke="#4a6070" stroke-width=".5"/>
+            <line x1="${w*.47}" y1="${h*.22}" x2="${w*.47}" y2="${h*.28}" stroke="#6b8399" stroke-width="2"/>
+            <rect x="${w*.72}" y="${h*.28}" width="${w*.1}" height="${h*.1}" rx="2" fill="#8899aa" stroke="#4a6070" stroke-width=".5"/>
+            <line x1="${w*.77}" y1="${h*.22}" x2="${w*.77}" y2="${h*.28}" stroke="#6b8399" stroke-width="2"/>
+            <rect x="${w*.53}" y="${h*.06}" width="${w*.14}" height="${h*.28}" rx="2" fill="#6b8399" stroke="#4a6070" stroke-width=".5"/>
+            <line x1="${w*.6}" y1="${h*.02}" x2="${w*.6}" y2="${h*.06}" stroke="#b0c4d8" stroke-width="1.5"/>
           </svg>`
       },
       'Cruiser': {
         label: 'Stealth Cruiser',
-        color: '#1e293b',
+        color: '#6080a0',
         svg: (w, h) => `
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">
             <defs>
-              <linearGradient id="n-stealth" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="#334155"/>
-                <stop offset="100%" stop-color="#1e293b"/>
+              <linearGradient id="ns-hull" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#7a90a8"/>
+                <stop offset="100%" stop-color="#506878"/>
               </linearGradient>
             </defs>
-            <!-- Angular stealth hull -->
-            <polygon points="${w*.05},${h*.6} ${w*.15},${h*.85} ${w*.85},${h*.85} ${w*.95},${h*.6} ${w*.88},${h*.45} ${w*.12},${h*.45}" fill="url(#n-stealth)" stroke="#475569" stroke-width="1"/>
-            <!-- Angular bridge -->
-            <polygon points="${w*.35},${h*.45} ${w*.4},${h*.2} ${w*.6},${h*.2} ${w*.65},${h*.45}" fill="#334155" stroke="#475569" stroke-width=".5"/>
-            <!-- Radar dome -->
-            <circle cx="${w*.5}" cy="${h*.15}" r="${Math.min(w,h)*.05}" fill="#475569" stroke="#64748b" stroke-width=".5"/>
-            <line x1="${w*.5}" y1="${h*.06}" x2="${w*.5}" y2="${h*.1}" stroke="#94a3b8" stroke-width="1"/>
-            <!-- Missile tubes -->
-            <rect x="${w*.18}" y="${h*.48}" width="${w*.12}" height="${h*.06}" rx="1" fill="#475569"/>
-            <rect x="${w*.7}" y="${h*.48}" width="${w*.12}" height="${h*.06}" rx="1" fill="#475569"/>
-            <!-- Hull number -->
-            <text x="${w*.5}" y="${h*.75}" text-anchor="middle" font-size="${Math.min(w,h)*.1}" fill="#64748b" font-weight="bold">CG</text>
+            <polygon points="${w*.04},${h*.5} ${w*.12},${h*.97} ${w*.88},${h*.97} ${w*.96},${h*.5} ${w*.88},${h*.35} ${w*.12},${h*.35}" fill="url(#ns-hull)" stroke="#3a5060" stroke-width="1"/>
+            <polygon points="${w*.35},${h*.35} ${w*.4},${h*.1} ${w*.6},${h*.1} ${w*.65},${h*.35}" fill="#6b8399" stroke="#3a5060" stroke-width=".5"/>
+            <circle cx="${w*.5}" cy="${h*.08}" r="${Math.min(w,h)*.05}" fill="#8899aa" stroke="#a0b0c0" stroke-width=".5"/>
+            <rect x="${w*.16}" y="${h*.38}" width="${w*.14}" height="${h*.06}" rx="1" fill="#8090a0"/>
+            <rect x="${w*.7}" y="${h*.38}" width="${w*.14}" height="${h*.06}" rx="1" fill="#8090a0"/>
+            <text x="${w*.5}" y="${h*.72}" text-anchor="middle" font-size="${Math.min(w,h)*.1}" fill="#c0d0e0" font-weight="bold">CG</text>
           </svg>`
       },
       'Submarine': {
         label: 'Nuclear Sub',
-        color: '#1e293b',
+        color: '#6080a0',
         svg: (w, h) => `
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">
             <defs>
-              <linearGradient id="n-sub" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#334155"/>
-                <stop offset="100%" stop-color="#0f172a"/>
+              <linearGradient id="nsub-hull" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#7a90a8"/>
+                <stop offset="100%" stop-color="#506878"/>
               </linearGradient>
             </defs>
-            <!-- Sub hull -->
-            <ellipse cx="${w*.5}" cy="${h*.6}" rx="${w*.46}" ry="${h*.24}" fill="url(#n-sub)" stroke="#475569" stroke-width="1"/>
-            <!-- Conning tower -->
-            <rect x="${w*.4}" y="${h*.28}" width="${w*.2}" height="${h*.2}" rx="3" fill="#334155" stroke="#475569" stroke-width=".8"/>
-            <!-- Periscope -->
-            <line x1="${w*.5}" y1="${h*.1}" x2="${w*.5}" y2="${h*.28}" stroke="#64748b" stroke-width="2"/>
-            <rect x="${w*.48}" y="${h*.07}" width="${w*.04}" height="${h*.06}" rx="1" fill="#475569"/>
-            <!-- Propeller -->
-            <circle cx="${w*.06}" cy="${h*.6}" r="${Math.min(w,h)*.03}" fill="#64748b"/>
-            <line x1="${w*.04}" y1="${h*.5}" x2="${w*.08}" y2="${h*.7}" stroke="#64748b" stroke-width="1.5"/>
-            <line x1="${w*.08}" y1="${h*.5}" x2="${w*.04}" y2="${h*.7}" stroke="#64748b" stroke-width="1.5"/>
-            <!-- Torpedo tubes -->
-            <circle cx="${w*.92}" cy="${h*.55}" r="${Math.min(w,h)*.02}" fill="#475569" stroke="#64748b" stroke-width=".5"/>
-            <circle cx="${w*.92}" cy="${h*.65}" r="${Math.min(w,h)*.02}" fill="#475569" stroke="#64748b" stroke-width=".5"/>
-            <!-- Dive planes -->
-            <line x1="${w*.78}" y1="${h*.5}" x2="${w*.88}" y2="${h*.45}" stroke="#475569" stroke-width="2"/>
-            <line x1="${w*.78}" y1="${h*.7}" x2="${w*.88}" y2="${h*.75}" stroke="#475569" stroke-width="2"/>
-            <!-- Hull number -->
-            <text x="${w*.5}" y="${h*.65}" text-anchor="middle" font-size="${Math.min(w,h)*.09}" fill="#64748b" font-weight="bold">SSN</text>
+            <ellipse cx="${w*.5}" cy="${h*.55}" rx="${w*.47}" ry="${h*.38}" fill="url(#nsub-hull)" stroke="#3a5060" stroke-width="1"/>
+            <rect x="${w*.4}" y="${h*.12}" width="${w*.2}" height="${h*.2}" rx="3" fill="#6b8399" stroke="#3a5060" stroke-width=".8"/>
+            <line x1="${w*.5}" y1="${h*.02}" x2="${w*.5}" y2="${h*.12}" stroke="#8899aa" stroke-width="2"/>
+            <rect x="${w*.48}" y="${h*.01}" width="${w*.04}" height="${h*.06}" rx="1" fill="#8090a0"/>
+            <circle cx="${w*.06}" cy="${h*.55}" r="${Math.min(w,h)*.03}" fill="#8899aa"/>
+            <circle cx="${w*.92}" cy="${h*.48}" r="${Math.min(w,h)*.02}" fill="#8090a0" stroke="#a0b0c0" stroke-width=".5"/>
+            <circle cx="${w*.92}" cy="${h*.62}" r="${Math.min(w,h)*.02}" fill="#8090a0" stroke="#a0b0c0" stroke-width=".5"/>
+            <text x="${w*.5}" y="${h*.6}" text-anchor="middle" font-size="${Math.min(w,h)*.09}" fill="#c0d0e0" font-weight="bold">SSN</text>
           </svg>`
       },
       'Destroyer': {
         label: 'Destroyer',
-        color: '#475569',
+        color: '#7090b0',
         svg: (w, h) => `
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">
             <defs>
-              <linearGradient id="n-dd" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#64748b"/>
-                <stop offset="100%" stop-color="#334155"/>
+              <linearGradient id="ndd-hull" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#8899aa"/>
+                <stop offset="100%" stop-color="#556677"/>
               </linearGradient>
             </defs>
-            <!-- Hull -->
-            <path d="M${w*.06},${h*.55} Q0,${h*.85} ${w*.18},${h*.82} L${w*.82},${h*.82} Q${w},${h*.85} ${w*.94},${h*.55} Z" fill="url(#n-dd)" stroke="#1e293b" stroke-width="1"/>
-            <!-- Deck -->
-            <rect x="${w*.12}" y="${h*.42}" width="${w*.76}" height="${h*.16}" rx="2" fill="#475569"/>
-            <!-- Forward gun -->
-            <rect x="${w*.6}" y="${h*.35}" width="${w*.12}" height="${h*.1}" rx="2" fill="#64748b" stroke="#334155" stroke-width=".5"/>
-            <line x1="${w*.72}" y1="${h*.4}" x2="${w*.82}" y2="${h*.37}" stroke="#334155" stroke-width="2"/>
-            <!-- Bridge -->
-            <rect x="${w*.32}" y="${h*.2}" width="${w*.18}" height="${h*.24}" rx="2" fill="#475569" stroke="#334155" stroke-width=".5"/>
-            <rect x="${w*.35}" y="${h*.24}" width="${w*.12}" height="${h*.06}" rx="1" fill="#7dd3fc" opacity=".4"/>
-            <!-- Radar mast -->
-            <line x1="${w*.41}" y1="${h*.06}" x2="${w*.41}" y2="${h*.2}" stroke="#94a3b8" stroke-width="1.5"/>
-            <ellipse cx="${w*.41}" cy="${h*.08}" rx="${w*.06}" ry="${h*.03}" fill="none" stroke="#64748b" stroke-width="1"/>
-            <!-- DD label -->
-            <text x="${w*.5}" y="${h*.72}" text-anchor="middle" font-size="${Math.min(w,h)*.1}" fill="#94a3b8" font-weight="bold">DD</text>
+            <path d="M${w*.05},${h*.45} Q${w*.01},${h*.97} ${w*.14},${h*.97} L${w*.86},${h*.97} Q${w*.99},${h*.97} ${w*.95},${h*.45} Z" fill="url(#ndd-hull)" stroke="#334455" stroke-width="1"/>
+            <rect x="${w*.1}" y="${h*.34}" width="${w*.8}" height="${h*.14}" rx="2" fill="#6b8399"/>
+            <rect x="${w*.6}" y="${h*.24}" width="${w*.14}" height="${h*.12}" rx="2" fill="#8899aa" stroke="#4a6070" stroke-width=".5"/>
+            <line x1="${w*.74}" y1="${h*.3}" x2="${w*.84}" y2="${h*.26}" stroke="#4a6070" stroke-width="2"/>
+            <rect x="${w*.3}" y="${h*.1}" width="${w*.2}" height="${h*.26}" rx="2" fill="#6b8399" stroke="#4a6070" stroke-width=".5"/>
+            <line x1="${w*.4}" y1="${h*.02}" x2="${w*.4}" y2="${h*.1}" stroke="#b0c4d8" stroke-width="1.5"/>
+            <ellipse cx="${w*.4}" cy="${h*.04}" rx="${w*.06}" ry="${h*.03}" fill="none" stroke="#8899aa" stroke-width="1"/>
+            <text x="${w*.5}" y="${h*.72}" text-anchor="middle" font-size="${Math.min(w,h)*.1}" fill="#d0dde8" font-weight="bold">DD</text>
           </svg>`
       },
       'Patrol': {
         label: 'Patrol Boat',
-        color: '#64748b',
+        color: '#7090b0',
         svg: (w, h) => `
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">
-            <!-- Small rigid hull -->
-            <path d="M${w*.1},${h*.55} Q${w*.05},${h*.82} ${w*.25},${h*.78} L${w*.75},${h*.78} Q${w*.95},${h*.82} ${w*.9},${h*.55} Z" fill="#475569" stroke="#334155" stroke-width="1"/>
-            <!-- Cabin -->
-            <rect x="${w*.3}" y="${h*.3}" width="${w*.25}" height="${h*.25}" rx="2" fill="#64748b" stroke="#334155" stroke-width=".5"/>
-            <!-- Gun mount -->
-            <circle cx="${w*.7}" cy="${h*.42}" r="${Math.min(w,h)*.05}" fill="#475569" stroke="#334155" stroke-width=".5"/>
-            <line x1="${w*.7}" y1="${h*.42}" x2="${w*.82}" y2="${h*.35}" stroke="#334155" stroke-width="1.5"/>
-            <!-- Flag -->
-            <line x1="${w*.42}" y1="${h*.12}" x2="${w*.42}" y2="${h*.3}" stroke="#334155" stroke-width="1"/>
-            <rect x="${w*.42}" y="${h*.12}" width="${w*.12}" height="${h*.1}" rx="1" fill="#3b82f6"/>
+            <path d="M${w*.08},${h*.45} Q${w*.03},${h*.95} ${w*.2},${h*.95} L${w*.8},${h*.95} Q${w*.97},${h*.95} ${w*.92},${h*.45} Z" fill="#6b8399" stroke="#3a5060" stroke-width="1"/>
+            <rect x="${w*.28}" y="${h*.18}" width="${w*.28}" height="${h*.28}" rx="2" fill="#8899aa" stroke="#4a6070" stroke-width=".5"/>
+            <circle cx="${w*.72}" cy="${h*.35}" r="${Math.min(w,h)*.06}" fill="#6b8399" stroke="#4a6070" stroke-width=".5"/>
+            <line x1="${w*.72}" y1="${h*.35}" x2="${w*.84}" y2="${h*.26}" stroke="#4a6070" stroke-width="1.5"/>
+            <line x1="${w*.42}" y1="${h*.06}" x2="${w*.42}" y2="${h*.18}" stroke="#4a6070" stroke-width="1"/>
+            <rect x="${w*.42}" y="${h*.06}" width="${w*.12}" height="${h*.08}" rx="1" fill="#4488cc"/>
           </svg>`
       }
     }
@@ -292,7 +245,7 @@ const ShipFactions = {
 
 // ── Helpers ───────────────────────────────────────────────
 
-let currentFaction = 'pirate'; // default
+let currentFaction = 'pirate';
 
 function setFaction(faction) {
   currentFaction = faction;

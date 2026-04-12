@@ -30,7 +30,6 @@ const UI = (() => {
     statShips: document.getElementById('stat-ships-left'),
     statEnemy: document.getElementById('stat-enemy-ships'),
     battleLog: document.getElementById('battle-log'),
-    gridTabs: document.getElementById('grid-tabs'),
     targetSection: document.getElementById('target-section'),
     oceanSection: document.getElementById('ocean-section'),
     gameoverIcon: document.getElementById('gameover-icon'),
@@ -40,6 +39,27 @@ const UI = (() => {
     btnHome: document.getElementById('btn-home'),
     rematchStatus: document.getElementById('rematch-status'),
     toast: document.getElementById('toast'),
+    // New feature elements
+    inputName: document.getElementById('input-name'),
+    selectTimer: document.getElementById('select-timer'),
+    btnHowToPlay: document.getElementById('btn-how-to-play'),
+    modalRules: document.getElementById('modal-rules'),
+    btnCloseRules: document.getElementById('btn-close-rules'),
+    scoreboard: document.getElementById('scoreboard'),
+    scoreMyName: document.getElementById('score-my-name'),
+    scoreOppName: document.getElementById('score-opp-name'),
+    scoreMyWins: document.getElementById('score-my-wins'),
+    scoreOppWins: document.getElementById('score-opp-wins'),
+    timerBarContainer: document.getElementById('timer-bar-container'),
+    timerBar: document.getElementById('timer-bar'),
+    timerText: document.getElementById('timer-text'),
+    chatPanel: document.getElementById('chat-panel'),
+    chatMessages: document.getElementById('chat-messages'),
+    chatInput: document.getElementById('chat-input'),
+    btnChatSend: document.getElementById('btn-chat-send'),
+    btnChatToggle: document.getElementById('btn-chat-toggle'),
+    btnChatClose: document.getElementById('btn-chat-close'),
+    gameoverScore: document.getElementById('gameover-score'),
   };
 
   // ── Screen Navigation ───────────────────────────────
@@ -112,14 +132,18 @@ const UI = (() => {
       div.dataset.size = ship.size;
 
       const svgDef = getShipSVG(ship.name);
-      const svgW = Math.max(ship.size, 1) * 28;
-      const svgH = 28;
+      const unit = 20;
+      const svgW = Math.max(ship.size, 1) * unit;
+      const svgH = unit;
 
       const svgContainer = document.createElement('div');
       svgContainer.className = 'dock-ship-svg';
       svgContainer.style.width = svgW + 'px';
       svgContainer.style.height = svgH + 'px';
-      if (svgDef) svgContainer.innerHTML = svgDef.svg(svgW, svgH);
+      if (svgDef) {
+        const dockUid = Math.random().toString(36).substring(2, 6);
+        svgContainer.innerHTML = makeIdsUnique(svgDef.svg(svgW, svgH), dockUid);
+      }
       div.appendChild(svgContainer);
 
       const label = document.createElement('span');
@@ -164,7 +188,7 @@ const UI = (() => {
 
     // Create ghost
     const svgDef = getShipSVG(ship.name);
-    const cellSize = getCell(els.placementGrid, 0, 0)?.offsetWidth || 36;
+    const cellSize = getCellSize();
     const isH = Game.selectedOrientation === 'horizontal';
     const gW = isH ? ship.size * cellSize : cellSize;
     const gH = isH ? cellSize : ship.size * cellSize;
@@ -175,7 +199,10 @@ const UI = (() => {
     dragGhost.style.height = gH + 'px';
     dragGhost.style.left = (startX - gW / 2) + 'px';
     dragGhost.style.top = (startY - gH / 2) + 'px';
-    if (svgDef) dragGhost.innerHTML = svgDef.svg(gW, gH);
+    if (svgDef) {
+      const ghostUid = Math.random().toString(36).substring(2, 6);
+      dragGhost.innerHTML = makeIdsUnique(svgDef.svg(gW, gH), ghostUid);
+    }
     document.body.appendChild(dragGhost);
 
     dragShip = ship;
@@ -300,24 +327,35 @@ const UI = (() => {
 
   function handlePlacementClick(row, col) {
     if (!Game.selectedShip) {
-      // Click a placed ship to rotate it in-place
+      // Click a placed ship to pick it up for repositioning
       const existing = Game.getShipAt(row, col);
       if (existing) {
-        if (existing.size === 1) {
-          showToast('Patrol boats don\'t need rotation');
-          return;
+        // Pick it up — put it back in the dock for re-placement
+        const shipDef = Game.SHIPS.find(s => s.name === existing.name);
+        Game.selectedOrientation = existing.orientation;
+        Game.removeShip(existing.name);
+        Game.selectedShip = shipDef;
+
+        // Update dock visuals
+        const dockEl = els.shipDock.querySelector(`[data-name="${existing.name}"]`);
+        if (dockEl) {
+          dockEl.classList.remove('placed');
+          dockEl.classList.add('selected');
         }
-        const rotated = Game.rotateShipAt(row, col);
-        if (rotated) {
-          SoundManager.playPlace();
-          refreshPlacementGrid();
-          requestAnimationFrame(() => Ocean.applyToGrid(els.placementGrid));
-          showToast(`${getShipLabel(existing.name)} rotated`);
-        } else {
-          showToast('Can\'t rotate — not enough space');
-        }
+
+        refreshPlacementGrid();
+        requestAnimationFrame(() => Ocean.applyToGrid(els.placementGrid));
+        updateReadyButton();
+        showToast(`${getShipLabel(existing.name)} picked up — click to rotate, click grid to place`);
         return;
       }
+      return;
+    }
+
+    // If clicking on the same spot, try to rotate instead
+    const existingAtTarget = Game.getShipAt(row, col);
+    if (existingAtTarget && existingAtTarget.name === Game.selectedShip.name) {
+      // This shouldn't happen since we removed it, but just in case
       return;
     }
 
@@ -369,8 +407,9 @@ const UI = (() => {
     els.placementGrid.querySelectorAll('.grid-cell').forEach(cell => {
       cell.className = 'grid-cell';
     });
-    // Remove old overlays
-    els.placementGrid.querySelectorAll('.ship-overlay').forEach(o => o.remove());
+    // Remove old overlays from the overlay container
+    const oc = els.placementGrid.parentElement.querySelector('.overlay-container');
+    if (oc) oc.innerHTML = '';
 
     // Redraw placed ships
     for (const ship of Game.getPlacedShips()) {
@@ -386,37 +425,131 @@ const UI = (() => {
     }
   }
 
+  // ── Ship Overlay System ──────────────────────────────
+  // Overlays are absolutely positioned inside a wrapper div
+  // that sits on top of the grid. Position is calculated from
+  // actual rendered cell positions — always accurate.
+
   function addShipOverlay(grid, ship) {
-    const firstCell = getCell(grid, ship.row, ship.col);
-    if (!firstCell) return;
-
-    const gridRect = grid.getBoundingClientRect();
-    const cellRect = firstCell.getBoundingClientRect();
-    const cellSize = cellRect.width;
-    const gap = 1; // grid gap
-
-    const isH = ship.orientation === 'horizontal';
-    const spanW = isH ? ship.size * (cellSize + gap) - gap : cellSize;
-    const spanH = isH ? cellSize : ship.size * (cellSize + gap) - gap;
+    // Get or create the overlay container for this grid
+    let container = grid.parentElement.querySelector('.overlay-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.className = 'overlay-container';
+      grid.parentElement.style.position = 'relative';
+      grid.parentElement.appendChild(container);
+    }
 
     const overlay = document.createElement('div');
     overlay.className = 'ship-overlay';
     overlay.dataset.shipName = ship.name;
-    overlay.style.position = 'absolute';
-    overlay.style.left = (cellRect.left - gridRect.left) + 'px';
-    overlay.style.top = (cellRect.top - gridRect.top) + 'px';
-    overlay.style.width = spanW + 'px';
-    overlay.style.height = spanH + 'px';
-    overlay.style.pointerEvents = 'none';
-    overlay.style.zIndex = '5';
+    overlay.dataset.shipSize = ship.size;
+    overlay.dataset.shipRow = ship.row;
+    overlay.dataset.shipCol = ship.col;
+    overlay.dataset.shipOrientation = ship.orientation;
+    overlay.dataset.gridId = grid.id;
+    container.appendChild(overlay);
 
-    const svgDef = getShipSVG(ship.name);
-    if (svgDef) {
-      overlay.innerHTML = svgDef.svg(spanW, spanH);
-    }
-
-    grid.appendChild(overlay);
+    positionOverlay(overlay, grid);
   }
+
+  function positionOverlay(overlay, grid) {
+    const row = +overlay.dataset.shipRow;
+    const col = +overlay.dataset.shipCol;
+    const size = +overlay.dataset.shipSize;
+    const isH = overlay.dataset.shipOrientation === 'horizontal';
+    const name = overlay.dataset.shipName;
+
+    if (!grid) grid = document.getElementById(overlay.dataset.gridId);
+    if (!grid) return;
+
+    const firstCell = getCell(grid, row, col);
+    if (!firstCell) return;
+
+    // Get last cell of the ship
+    const lastR = isH ? row : row + size - 1;
+    const lastC = isH ? col + size - 1 : col;
+    const lastCell = getCell(grid, lastR, lastC);
+    if (!lastCell) return;
+
+    const gridParent = grid.parentElement;
+    const parentRect = gridParent.getBoundingClientRect();
+    const firstRect = firstCell.getBoundingClientRect();
+    const lastRect = lastCell.getBoundingClientRect();
+
+    const x = firstRect.left - parentRect.left;
+    const y = firstRect.top - parentRect.top;
+    const w = lastRect.right - firstRect.left;
+    const h = lastRect.bottom - firstRect.top;
+
+    overlay.style.left = x + 'px';
+    overlay.style.top = y + 'px';
+    overlay.style.width = w + 'px';
+    overlay.style.height = h + 'px';
+
+    // SVG templates draw ships horizontally (bow right, stern left).
+    // For vertical ships: render SVG in a horizontal inner div, then rotate the whole thing.
+    // IMPORTANT: Make gradient IDs unique to avoid SVG ID collisions across multiple grids.
+    const svgDef = getShipSVG(name);
+    if (svgDef) {
+      const uid = Math.random().toString(36).substring(2, 6);
+      let svgHtml;
+
+      if (isH || size === 1) {
+        svgHtml = svgDef.svg(w, h);
+        // Make gradient/filter IDs unique
+        svgHtml = makeIdsUnique(svgHtml, uid);
+        overlay.innerHTML = svgHtml;
+        overlay.style.transform = '';
+        overlay.style.transformOrigin = '';
+      } else {
+        svgHtml = svgDef.svg(h, w);
+        svgHtml = makeIdsUnique(svgHtml, uid);
+        const inner = document.createElement('div');
+        inner.style.width = h + 'px';
+        inner.style.height = w + 'px';
+        inner.style.position = 'absolute';
+        inner.style.top = ((h - w) / 2) + 'px';
+        inner.style.left = (-(h - w) / 2) + 'px';
+        inner.style.transform = 'rotate(90deg)';
+        inner.innerHTML = svgHtml;
+        overlay.innerHTML = '';
+        overlay.appendChild(inner);
+        overlay.style.transform = '';
+        overlay.style.transformOrigin = '';
+      }
+    }
+  }
+
+  // Make SVG gradient/filter IDs unique to prevent cross-SVG collisions
+  function makeIdsUnique(svgStr, uid) {
+    // Find all id="xxx" definitions and url(#xxx) references, append uid
+    const idRegex = /id="([^"]+)"/g;
+    const ids = new Set();
+    let match;
+    while ((match = idRegex.exec(svgStr)) !== null) {
+      ids.add(match[1]);
+    }
+    for (const id of ids) {
+      const newId = id + '_' + uid;
+      svgStr = svgStr.split(`id="${id}"`).join(`id="${newId}"`);
+      svgStr = svgStr.split(`url(#${id})`).join(`url(#${newId})`);
+    }
+    return svgStr;
+  }
+
+  // Reposition all overlays (called on resize and view toggle)
+  function repositionAllOverlays() {
+    document.querySelectorAll('.ship-overlay').forEach(overlay => {
+      positionOverlay(overlay, null);
+    });
+  }
+
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(repositionAllOverlays, 100);
+  });
 
   function updateReadyButton() {
     els.btnReady.disabled = !Game.allShipsPlaced();
@@ -496,7 +629,9 @@ const UI = (() => {
 
   function buildOceanBattleGrid() {
     buildGrid(els.oceanGrid, null);
-    // Paint my ships with SVG overlays
+    // Clear any old overlay container
+    const oc = els.oceanGrid.parentElement.querySelector('.overlay-container');
+    if (oc) oc.innerHTML = '';
     for (const ship of Game.getPlacedShips()) {
       for (let i = 0; i < ship.size; i++) {
         const r = ship.orientation === 'horizontal' ? ship.row : ship.row + i;
@@ -504,7 +639,8 @@ const UI = (() => {
         const cell = getCell(els.oceanGrid, r, c);
         if (cell) cell.classList.add('ship');
       }
-      addShipOverlay(els.oceanGrid, ship);
+      // Don't add overlays yet — ocean grid starts hidden.
+      // They'll be added when user clicks "My Fleet".
     }
   }
 
@@ -513,9 +649,11 @@ const UI = (() => {
     if (myTurn) {
       els.turnIndicator.textContent = 'YOUR TURN — FIRE!';
       els.turnIndicator.className = 'turn-indicator my-turn';
+      els.targetSection.classList.remove('locked');
     } else {
       els.turnIndicator.textContent = 'ENEMY\'S TURN…';
       els.turnIndicator.className = 'turn-indicator waiting';
+      els.targetSection.classList.add('locked');
     }
   }
 
@@ -565,12 +703,74 @@ const UI = (() => {
   function goToPlacement() {
     Game.reset();
     buildGrid(els.placementGrid, handlePlacementClick);
-    // Add hover listeners
+    // Add hover + right-click listeners
     els.placementGrid.querySelectorAll('.grid-cell').forEach(cell => {
       cell.addEventListener('mouseenter', () => {
         handlePlacementHover(+cell.dataset.row, +cell.dataset.col);
       });
       cell.addEventListener('mouseleave', clearPreview);
+      // Drag placed ships from the grid to reposition
+      cell.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return; // left click only
+        const row = +cell.dataset.row;
+        const col = +cell.dataset.col;
+        const existing = Game.getShipAt(row, col);
+        if (existing && !Game.selectedShip) {
+          e.preventDefault();
+          e.stopPropagation();
+          const shipDef = Game.SHIPS.find(s => s.name === existing.name);
+          Game.selectedOrientation = existing.orientation;
+          Game.removeShip(existing.name);
+          refreshPlacementGrid();
+          requestAnimationFrame(() => Ocean.applyToGrid(els.placementGrid));
+          updateReadyButton();
+          // Start drag with this ship
+          const dockEl = els.shipDock.querySelector(`[data-name="${existing.name}"]`);
+          if (dockEl) {
+            dockEl.classList.remove('placed');
+            dockEl.classList.add('selected');
+          }
+          startDrag(shipDef, dockEl, e.clientX, e.clientY);
+        }
+      });
+      cell.addEventListener('touchstart', (e) => {
+        const row = +cell.dataset.row;
+        const col = +cell.dataset.col;
+        const existing = Game.getShipAt(row, col);
+        if (existing && !Game.selectedShip) {
+          const touch = e.touches[0];
+          const shipDef = Game.SHIPS.find(s => s.name === existing.name);
+          Game.selectedOrientation = existing.orientation;
+          Game.removeShip(existing.name);
+          refreshPlacementGrid();
+          requestAnimationFrame(() => Ocean.applyToGrid(els.placementGrid));
+          updateReadyButton();
+          const dockEl = els.shipDock.querySelector(`[data-name="${existing.name}"]`);
+          if (dockEl) {
+            dockEl.classList.remove('placed');
+            dockEl.classList.add('selected');
+          }
+          startDrag(shipDef, dockEl, touch.clientX, touch.clientY);
+        }
+      }, { passive: true });
+      // Right-click to rotate placed ship in-place
+      cell.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        const row = +cell.dataset.row;
+        const col = +cell.dataset.col;
+        const existing = Game.getShipAt(row, col);
+        if (existing && existing.size > 1) {
+          const rotated = Game.rotateShipAt(row, col);
+          if (rotated) {
+            SoundManager.playPlace();
+            refreshPlacementGrid();
+            requestAnimationFrame(() => Ocean.applyToGrid(els.placementGrid));
+            showToast(`${getShipLabel(existing.name)} rotated`);
+          } else {
+            showToast('Can\'t rotate — not enough space');
+          }
+        }
+      });
     });
     buildShipDock();
     updateReadyButton();
@@ -584,6 +784,7 @@ const UI = (() => {
   }
 
   function goToBattle(myTurn) {
+    Ocean.stopAnimation();
     buildGrid(els.targetGrid, handleTargetClick);
     buildOceanBattleGrid();
     Game.myShipsAlive = 10;
@@ -592,31 +793,38 @@ const UI = (() => {
     updateTurnIndicator(myTurn);
     els.battleLog.innerHTML = '<div class="log-entry system">Battle stations! Awaiting orders, Commander.</div>';
 
-    // Reset mobile tabs
-    els.targetSection.classList.remove('hidden');
-    els.oceanSection.classList.remove('active');
-    const tabs = els.gridTabs.querySelectorAll('.tab');
-    tabs[0].classList.add('active');
-    tabs[1].classList.remove('active');
+    // Show target grid by default (Enemy Waters)
+    els.targetSection.classList.add('active-view');
+    els.oceanSection.classList.remove('active-view');
+    document.getElementById('btn-view-target').classList.add('active');
+    document.getElementById('btn-view-ocean').classList.remove('active');
 
     showScreen('battle');
-    // Paint ocean on both battle grids
     requestAnimationFrame(() => {
       Ocean.applyToGrid(els.targetGrid);
-      Ocean.applyToGrid(els.oceanGrid);
       Ocean.startAnimation(els.targetGrid);
+
+      // Ocean grid overlays will be added when "My Fleet" is first clicked
+      // (grid must be visible for accurate positioning)
+      els._oceanOverlaysAdded = false;
     });
   }
 
-  function goToGameOver(won) {
+  function goToGameOver(won, myName, oppName, myWins, oppWins) {
     Ocean.stopAnimation();
+    clearTimerInterval();
     els.gameoverIcon.textContent = won ? '🏆' : '💀';
     els.gameoverTitle.textContent = won ? 'VICTORY!' : 'DEFEAT';
     els.gameoverTitle.className = won ? 'win' : 'lose';
     els.gameoverSubtitle.textContent = won
       ? 'All enemy ships destroyed. Well played, Commander!'
       : 'Your fleet has been destroyed. Better luck next time.';
+    if (myName && oppName) {
+      els.gameoverScore.textContent = `${myName}: ${myWins} — ${oppWins}: ${oppName}`;
+    }
     els.rematchStatus.textContent = '';
+    // Close chat panel
+    els.chatPanel.classList.remove('open');
     showScreen('gameover');
   }
 
@@ -624,14 +832,124 @@ const UI = (() => {
     els.rematchStatus.textContent = msg;
   }
 
+  // ── Scoreboard ──────────────────────────────────────
+  function updateScoreboard(myName, oppName, myWins, oppWins) {
+    els.scoreMyName.textContent = myName;
+    els.scoreOppName.textContent = oppName;
+    els.scoreMyWins.textContent = myWins;
+    els.scoreOppWins.textContent = oppWins;
+  }
+
+  // ── Timer ───────────────────────────────────────────
+  let timerInterval = null;
+  let timerTotalSeconds = 0;
+
+  function initTimer(seconds) {
+    timerTotalSeconds = seconds;
+    els.timerBarContainer.style.display = seconds > 0 ? '' : 'none';
+  }
+
+  function startTimerBar(seconds) {
+    clearTimerInterval();
+    if (!seconds || seconds <= 0) return;
+    els.timerBarContainer.style.display = '';
+
+    let remaining = seconds;
+    els.timerBar.style.width = '100%';
+    els.timerBar.className = 'timer-bar';
+    els.timerText.textContent = remaining;
+
+    timerInterval = setInterval(() => {
+      remaining--;
+      if (remaining < 0) remaining = 0;
+      const pct = (remaining / seconds) * 100;
+      els.timerBar.style.width = pct + '%';
+      els.timerText.textContent = remaining;
+
+      if (pct <= 20) els.timerBar.className = 'timer-bar danger';
+      else if (pct <= 50) els.timerBar.className = 'timer-bar warning';
+      else els.timerBar.className = 'timer-bar';
+
+      if (remaining <= 0) clearTimerInterval();
+    }, 1000);
+  }
+
+  function clearTimerInterval() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+  }
+
+  // ── Chat ────────────────────────────────────────────
+  let chatUnread = 0;
+  let chatPopupTimer = null;
+
+  function addChatMessage(sender, text, isMine) {
+    const div = document.createElement('div');
+    div.className = `chat-msg ${isMine ? 'mine' : 'theirs'}`;
+    div.innerHTML = `<span class="msg-sender">${sender}</span>${text}`;
+    els.chatMessages.appendChild(div);
+    els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+  }
+
+  function showChatNotification() {
+    // If chat panel is open, no notification needed
+    if (els.chatPanel.classList.contains('open')) return;
+
+    chatUnread++;
+    updateChatBadge();
+
+    // Show popup briefly
+    const existing = document.querySelector('.chat-popup');
+    if (existing) existing.remove();
+
+    const lastMsg = els.chatMessages.lastElementChild;
+    if (lastMsg) {
+      const popup = document.createElement('div');
+      popup.className = 'chat-popup';
+      popup.innerHTML = lastMsg.innerHTML;
+      document.body.appendChild(popup);
+      clearTimeout(chatPopupTimer);
+      chatPopupTimer = setTimeout(() => popup.remove(), 3000);
+    }
+  }
+
+  function updateChatBadge() {
+    let badge = els.btnChatToggle.querySelector('.chat-badge');
+    if (chatUnread > 0) {
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'chat-badge';
+        els.btnChatToggle.appendChild(badge);
+      }
+      badge.textContent = chatUnread;
+    } else if (badge) {
+      badge.remove();
+    }
+  }
+
   // ── Event Bindings ──────────────────────────────────
   function init() {
     SocketHandler.connect();
 
+    // How to Play
+    els.btnHowToPlay.addEventListener('click', () => {
+      els.modalRules.style.display = 'flex';
+    });
+    els.btnCloseRules.addEventListener('click', () => {
+      els.modalRules.style.display = 'none';
+    });
+    els.modalRules.addEventListener('click', (e) => {
+      if (e.target === els.modalRules) els.modalRules.style.display = 'none';
+    });
+
     // Home: Create
     els.btnCreate.addEventListener('click', () => {
       els.homeError.textContent = '';
-      SocketHandler.createRoom((res) => {
+      const name = els.inputName.value.trim() || 'Player 1';
+      const timer = parseInt(els.selectTimer.value) || 0;
+      SocketHandler.createRoom(name, timer, (res) => {
         if (res.success) {
           SocketHandler.roomCode = res.code;
           SocketHandler.playerIndex = res.playerIndex;
@@ -650,10 +968,12 @@ const UI = (() => {
         return;
       }
       els.homeError.textContent = '';
-      SocketHandler.joinRoom(code, (res) => {
+      const name = els.inputName.value.trim() || 'Player 2';
+      SocketHandler.joinRoom(code, name, (res) => {
         if (res.success) {
           SocketHandler.roomCode = res.code;
           SocketHandler.playerIndex = res.playerIndex;
+          if (res.opponentName) SocketHandler.opponentName = res.opponentName;
           goToFaction();
         } else {
           els.homeError.textContent = res.error;
@@ -692,6 +1012,7 @@ const UI = (() => {
       refreshPlacementGrid();
       buildShipDock();
       updateReadyButton();
+      requestAnimationFrame(() => Ocean.applyToGrid(els.placementGrid));
     });
 
     // Placement: Random
@@ -699,12 +1020,12 @@ const UI = (() => {
       Game.randomPlacement();
       Game.selectedShip = null;
       refreshPlacementGrid();
-      // Mark all dock ships as placed
       els.shipDock.querySelectorAll('.dock-ship').forEach(d => {
         d.classList.remove('selected');
         d.classList.add('placed');
       });
       updateReadyButton();
+      requestAnimationFrame(() => Ocean.applyToGrid(els.placementGrid));
     });
 
     // Placement: Ready
@@ -723,21 +1044,34 @@ const UI = (() => {
       });
     });
 
-    // Battle: Mobile tab toggle
-    els.gridTabs.addEventListener('click', (e) => {
-      const tab = e.target.closest('.tab');
-      if (!tab) return;
-      const which = tab.dataset.tab;
-      els.gridTabs.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
+    // Battle: View toggle (single grid with toggle button)
+    const btnViewTarget = document.getElementById('btn-view-target');
+    const btnViewOcean = document.getElementById('btn-view-ocean');
 
-      if (which === 'target') {
-        els.targetSection.classList.remove('hidden');
-        els.oceanSection.classList.remove('active');
-      } else {
-        els.targetSection.classList.add('hidden');
-        els.oceanSection.classList.add('active');
-      }
+    btnViewTarget.addEventListener('click', () => {
+      els.targetSection.classList.add('active-view');
+      els.oceanSection.classList.remove('active-view');
+      btnViewTarget.classList.add('active');
+      btnViewOcean.classList.remove('active');
+    });
+
+    btnViewOcean.addEventListener('click', () => {
+      els.oceanSection.classList.add('active-view');
+      els.targetSection.classList.remove('active-view');
+      btnViewOcean.classList.add('active');
+      btnViewTarget.classList.remove('active');
+      // Add overlays on first view (grid is now visible for positioning)
+      requestAnimationFrame(() => {
+        if (!els._oceanOverlaysAdded) {
+          els._oceanOverlaysAdded = true;
+          for (const ship of Game.getPlacedShips()) {
+            addShipOverlay(els.oceanGrid, ship);
+          }
+          Ocean.applyToGrid(els.oceanGrid);
+        } else {
+          repositionAllOverlays();
+        }
+      });
     });
 
     // Game Over: Rematch
@@ -750,6 +1084,34 @@ const UI = (() => {
     // Game Over: Home
     els.btnHome.addEventListener('click', () => {
       window.location.reload();
+    });
+
+    // ── Chat ──────────────────────────────────────────
+    els.btnChatToggle.addEventListener('click', () => {
+      els.chatPanel.classList.toggle('open');
+      if (els.chatPanel.classList.contains('open')) {
+        chatUnread = 0;
+        updateChatBadge();
+        els.chatInput.focus();
+        // Remove popup
+        const popup = document.querySelector('.chat-popup');
+        if (popup) popup.remove();
+      }
+    });
+
+    els.btnChatClose.addEventListener('click', () => {
+      els.chatPanel.classList.remove('open');
+    });
+
+    els.btnChatSend.addEventListener('click', () => {
+      const msg = els.chatInput.value.trim();
+      if (!msg) return;
+      SocketHandler.sendChat(msg);
+      els.chatInput.value = '';
+    });
+
+    els.chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') els.btnChatSend.click();
     });
   }
 
@@ -767,6 +1129,11 @@ const UI = (() => {
     addLog,
     setPlacementStatus,
     showRematchStatus,
+    updateScoreboard,
+    initTimer,
+    startTimerBar,
+    addChatMessage,
+    showChatNotification,
   };
 })();
 

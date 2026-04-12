@@ -4,6 +4,10 @@ const SocketHandler = (() => {
   let socket = null;
   let roomCode = null;
   let playerIndex = null;
+  let myName = '';
+  let opponentName = '';
+  let myWins = 0;
+  let opponentWins = 0;
 
   function connect() {
     socket = io();
@@ -12,8 +16,9 @@ const SocketHandler = (() => {
       console.log('Connected to server');
     });
 
-    socket.on('opponent-joined', () => {
-      UI.showToast('Opponent joined!');
+    socket.on('opponent-joined', ({ name }) => {
+      opponentName = name;
+      UI.showToast(`${name} joined!`);
       UI.goToFaction();
     });
 
@@ -22,14 +27,33 @@ const SocketHandler = (() => {
       UI.setPlacementStatus('Opponent ready — place your ships!');
     });
 
-    socket.on('game-start', ({ myTurn }) => {
-      Game.isMyTurn = myTurn;
-      UI.goToBattle(myTurn);
+    socket.on('game-start', (data) => {
+      Game.isMyTurn = data.myTurn;
+      myName = data.myName;
+      opponentName = data.opponentName;
+      myWins = data.myWins;
+      opponentWins = data.opponentWins;
+      UI.goToBattle(data.myTurn);
+      UI.updateScoreboard(myName, opponentName, myWins, opponentWins);
+      if (data.timerSeconds > 0) {
+        UI.initTimer(data.timerSeconds);
+      }
     });
 
-    socket.on('turn-update', ({ myTurn }) => {
+    socket.on('turn-update', ({ myTurn, timeout }) => {
       Game.isMyTurn = myTurn;
       UI.updateTurnIndicator(myTurn);
+      if (timeout) {
+        UI.showToast("Time's up! Turn skipped.");
+      }
+    });
+
+    socket.on('timer-start', ({ seconds }) => {
+      UI.startTimerBar(seconds);
+    });
+
+    socket.on('timer-expired', ({ name }) => {
+      UI.addLog(`${name} ran out of time!`, 'system');
     });
 
     socket.on('incoming-fire', ({ row, col, result, sunkShip }) => {
@@ -50,13 +74,15 @@ const SocketHandler = (() => {
       }
     });
 
-    socket.on('game-over', ({ won }) => {
+    socket.on('game-over', ({ won, myWins: mw, opponentWins: ow }) => {
+      myWins = mw;
+      opponentWins = ow;
       if (won) {
         SoundManager.playWin();
       } else {
         SoundManager.playLose();
       }
-      UI.goToGameOver(won);
+      UI.goToGameOver(won, myName, opponentName, myWins, opponentWins);
     });
 
     socket.on('opponent-disconnected', () => {
@@ -74,14 +100,22 @@ const SocketHandler = (() => {
       UI.goToFaction();
       UI.showToast('New game! Choose your side.');
     });
+
+    // Chat
+    socket.on('chat-message', ({ sender, text }) => {
+      UI.addChatMessage(sender, text, false);
+      UI.showChatNotification();
+    });
   }
 
-  function createRoom(callback) {
-    socket.emit('create-room', callback);
+  function createRoom(name, timer, callback) {
+    myName = name;
+    socket.emit('create-room', { name, timer }, callback);
   }
 
-  function joinRoom(code, callback) {
-    socket.emit('join-room', code, callback);
+  function joinRoom(code, name, callback) {
+    myName = name;
+    socket.emit('join-room', { code, name }, callback);
   }
 
   function sendShips(ships, callback) {
@@ -90,6 +124,11 @@ const SocketHandler = (() => {
 
   function fire(row, col, callback) {
     socket.emit('fire', { row, col }, callback);
+  }
+
+  function sendChat(msg) {
+    socket.emit('send-chat', msg);
+    UI.addChatMessage(myName, msg, true);
   }
 
   function requestRematch() {
@@ -110,12 +149,16 @@ const SocketHandler = (() => {
     joinRoom,
     sendShips,
     fire,
+    sendChat,
     requestRematch,
     acceptRematch,
     get roomCode() { return roomCode; },
     set roomCode(v) { roomCode = v; },
     get playerIndex() { return playerIndex; },
     set playerIndex(v) { playerIndex = v; },
+    get myName() { return myName; },
+    get opponentName() { return opponentName; },
+    set opponentName(v) { opponentName = v; },
     coordLabel,
   };
 })();

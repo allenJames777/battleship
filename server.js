@@ -28,39 +28,39 @@ function createEmptyBoard() {
   return Array.from({ length: 10 }, () => Array(10).fill(null));
 }
 
-function createTrackingBoard() {
-  return Array.from({ length: 10 }, () => Array(10).fill(null));
-}
-
 // ── Socket.io Logic ─────────────────────────────────────────
 io.on('connection', (socket) => {
   console.log(`Connected: ${socket.id}`);
 
-  socket.on('create-room', (callback) => {
+  socket.on('create-room', ({ name, timer }, callback) => {
     const code = generateRoomCode();
     const room = {
       code,
       players: {
         [socket.id]: {
+          name: name || 'Player 1',
           board: createEmptyBoard(),
           ships: [],
           ready: false,
-          hits: 0
+          hits: 0,
+          wins: 0
         }
       },
       turn: null,
       phase: 'placement',
-      winner: null
+      winner: null,
+      timerSeconds: timer || 0, // 0 = no timer
+      turnTimer: null
     };
     rooms.set(code, room);
     socket.join(code);
     socket.roomCode = code;
     socket.playerIndex = 0;
     callback({ success: true, code, playerIndex: 0 });
-    console.log(`Room ${code} created by ${socket.id}`);
+    console.log(`Room ${code} created by ${name || socket.id}`);
   });
 
-  socket.on('join-room', (code, callback) => {
+  socket.on('join-room', ({ code, name }, callback) => {
     code = code.toUpperCase().trim();
     const room = rooms.get(code);
 
@@ -74,19 +74,32 @@ io.on('connection', (socket) => {
     }
 
     room.players[socket.id] = {
+      name: name || 'Player 2',
       board: createEmptyBoard(),
       ships: [],
       ready: false,
-      hits: 0
+      hits: 0,
+      wins: 0
     };
     socket.join(code);
     socket.roomCode = code;
     socket.playerIndex = 1;
-    callback({ success: true, code, playerIndex: 1 });
 
-    // Notify the other player
-    socket.to(code).emit('opponent-joined');
-    console.log(`${socket.id} joined room ${code}`);
+    // Send opponent info
+    const opponentId = playerIds[0];
+    const opponentName = room.players[opponentId].name;
+
+    callback({
+      success: true,
+      code,
+      playerIndex: 1,
+      opponentName,
+      timerSeconds: room.timerSeconds
+    });
+
+    // Notify the other player with joiner's name
+    socket.to(code).emit('opponent-joined', { name: name || 'Player 2' });
+    console.log(`${name || socket.id} joined room ${code}`);
   });
 
   socket.on('place-ships', (shipData, callback) => {
@@ -96,7 +109,6 @@ io.on('connection', (socket) => {
     const player = room.players[socket.id];
     const board = createEmptyBoard();
 
-    // Validate and place each ship
     for (const ship of shipData) {
       const { name, size, row, col, orientation } = ship;
       const cells = [];
@@ -123,17 +135,26 @@ io.on('connection', (socket) => {
     player.ships = shipData;
     player.ready = true;
 
-    // Check if both players are ready
     const playerIds = Object.keys(room.players);
     if (playerIds.length === 2 && playerIds.every(id => room.players[id].ready)) {
       room.phase = 'battle';
       room.turn = playerIds[Math.floor(Math.random() * 2)];
 
+      // Send game-start with names and scores
       for (const pid of playerIds) {
-        const isMyTurn = pid === room.turn;
-        io.to(pid).emit('game-start', { myTurn: isMyTurn });
+        const opId = playerIds.find(id => id !== pid);
+        io.to(pid).emit('game-start', {
+          myTurn: pid === room.turn,
+          myName: room.players[pid].name,
+          opponentName: room.players[opId].name,
+          myWins: room.players[pid].wins,
+          opponentWins: room.players[opId].wins,
+          timerSeconds: room.timerSeconds
+        });
       }
-      console.log(`Room ${socket.roomCode}: battle started, turn: ${room.turn}`);
+      // Start turn timer
+      startTurnTimer(room);
+      console.log(`Room ${socket.roomCode}: battle started`);
     } else {
       callback({ success: true, waiting: true });
       socket.to(socket.roomCode).emit('opponent-ready');
@@ -146,6 +167,9 @@ io.on('connection', (socket) => {
     if (room.turn !== socket.id) {
       return callback({ success: false, error: 'Not your turn.' });
     }
+
+    // Clear turn timer
+    clearTurnTimer(room);
 
     const opponentId = Object.keys(room.players).find(id => id !== socket.id);
     if (!opponentId) return;
@@ -161,13 +185,11 @@ io.on('connection', (socket) => {
     let sunkShip = null;
 
     if (cell !== null) {
-      // It's a hit
       const shipName = cell;
       opponentBoard[row][col] = 'hit';
       room.players[socket.id].hits++;
       result = 'hit';
 
-      // Check if this ship is sunk
       const shipDef = room.players[opponentId].ships.find(s => s.name === shipName);
       if (shipDef) {
         let isSunk = true;
@@ -184,20 +206,28 @@ io.on('connection', (socket) => {
         }
       }
 
-      // Check for win (22 total ship cells: 5+4+3+3+2+1+1+1+1+1)
+      // Check for win (22 total ship cells)
       if (room.players[socket.id].hits >= 22) {
         room.phase = 'finished';
         room.winner = socket.id;
-        io.to(socket.id).emit('game-over', { won: true });
-        io.to(opponentId).emit('game-over', { won: false });
-        console.log(`Room ${socket.roomCode}: ${socket.id} wins!`);
+        room.players[socket.id].wins++;
+
+        const playerIds = Object.keys(room.players);
+        for (const pid of playerIds) {
+          const opId = playerIds.find(id => id !== pid);
+          io.to(pid).emit('game-over', {
+            won: pid === socket.id,
+            myWins: room.players[pid].wins,
+            opponentWins: room.players[opId].wins
+          });
+        }
+        console.log(`Room ${socket.roomCode}: ${room.players[socket.id].name} wins!`);
       }
     } else {
       opponentBoard[row][col] = 'miss';
       result = 'miss';
     }
 
-    // Send result to the attacker
     callback({
       success: true,
       result,
@@ -206,7 +236,6 @@ io.on('connection', (socket) => {
       sunkShip: sunkShip ? { name: sunkShip.name, size: sunkShip.size, row: sunkShip.row, col: sunkShip.col, orientation: sunkShip.orientation } : null
     });
 
-    // Notify the defender
     io.to(opponentId).emit('incoming-fire', {
       row,
       col,
@@ -214,23 +243,33 @@ io.on('connection', (socket) => {
       sunkShip: sunkShip ? sunkShip.name : null
     });
 
-    // Switch turns (unless game over)
+    // Switch turns only on MISS
     if (room.phase === 'battle') {
-      room.turn = opponentId;
-      io.to(socket.id).emit('turn-update', { myTurn: false });
-      io.to(opponentId).emit('turn-update', { myTurn: true });
+      if (result === 'miss') {
+        room.turn = opponentId;
+        io.to(socket.id).emit('turn-update', { myTurn: false });
+        io.to(opponentId).emit('turn-update', { myTurn: true });
+      } else {
+        io.to(socket.id).emit('turn-update', { myTurn: true });
+        io.to(opponentId).emit('turn-update', { myTurn: false });
+      }
+      startTurnTimer(room);
     }
   });
 
+  // ── Chat ──────────────────────────────────────────────
   socket.on('send-chat', (msg) => {
     const room = rooms.get(socket.roomCode);
     if (!room) return;
+    const player = room.players[socket.id];
+    const senderName = player ? player.name : 'Unknown';
     socket.to(socket.roomCode).emit('chat-message', {
-      sender: 'opponent',
+      sender: senderName,
       text: msg.substring(0, 200)
     });
   });
 
+  // ── Rematch ───────────────────────────────────────────
   socket.on('request-rematch', () => {
     const room = rooms.get(socket.roomCode);
     if (!room) return;
@@ -241,14 +280,14 @@ io.on('connection', (socket) => {
     const room = rooms.get(socket.roomCode);
     if (!room) return;
 
-    // Reset both players
+    clearTurnTimer(room);
+
     for (const pid of Object.keys(room.players)) {
-      room.players[pid] = {
-        board: createEmptyBoard(),
-        ships: [],
-        ready: false,
-        hits: 0
-      };
+      room.players[pid].board = createEmptyBoard();
+      room.players[pid].ships = [];
+      room.players[pid].ready = false;
+      room.players[pid].hits = 0;
+      // wins persist across rematches
     }
     room.phase = 'placement';
     room.turn = null;
@@ -257,13 +296,14 @@ io.on('connection', (socket) => {
     io.to(socket.roomCode).emit('rematch-start');
   });
 
+  // ── Disconnect ────────────────────────────────────────
   socket.on('disconnect', () => {
     console.log(`Disconnected: ${socket.id}`);
     if (socket.roomCode) {
       const room = rooms.get(socket.roomCode);
       if (room) {
+        clearTurnTimer(room);
         socket.to(socket.roomCode).emit('opponent-disconnected');
-        // Clean up room after a delay
         delete room.players[socket.id];
         if (Object.keys(room.players).length === 0) {
           rooms.delete(socket.roomCode);
@@ -274,9 +314,46 @@ io.on('connection', (socket) => {
   });
 });
 
+// ── Turn Timer Logic ────────────────────────────────────────
+function startTurnTimer(room) {
+  clearTurnTimer(room);
+  if (!room.timerSeconds || room.timerSeconds <= 0) return;
+  if (room.phase !== 'battle' || !room.turn) return;
+
+  // Notify both players timer started
+  const playerIds = Object.keys(room.players);
+  for (const pid of playerIds) {
+    io.to(pid).emit('timer-start', { seconds: room.timerSeconds });
+  }
+
+  room.turnTimer = setTimeout(() => {
+    if (room.phase !== 'battle') return;
+
+    const currentPlayer = room.turn;
+    const opponentId = playerIds.find(id => id !== currentPlayer);
+    if (!opponentId) return;
+
+    // Time's up — skip turn
+    room.turn = opponentId;
+    io.to(currentPlayer).emit('turn-update', { myTurn: false, timeout: true });
+    io.to(opponentId).emit('turn-update', { myTurn: true, timeout: false });
+
+    const timedOutName = room.players[currentPlayer]?.name || 'Player';
+    io.to(room.code).emit('timer-expired', { name: timedOutName });
+
+    startTurnTimer(room);
+  }, room.timerSeconds * 1000);
+}
+
+function clearTurnTimer(room) {
+  if (room.turnTimer) {
+    clearTimeout(room.turnTimer);
+    room.turnTimer = null;
+  }
+}
+
 // ── Cleanup stale rooms every 30 minutes ────────────────────
 setInterval(() => {
-  const now = Date.now();
   for (const [code, room] of rooms) {
     if (Object.keys(room.players).length === 0) {
       rooms.delete(code);
