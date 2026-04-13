@@ -7,10 +7,12 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: '*' },
-  // Longer timeouts for mobile browsers (iOS/Android)
-  pingTimeout: 30000,
-  pingInterval: 10000,
-  transports: ['websocket', 'polling']
+  // iOS Safari needs polling first — websocket upgrade fails on some networks
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  transports: ['polling', 'websocket'],
+  allowUpgrades: true,
+  upgradeTimeout: 30000
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -65,6 +67,12 @@ io.on('connection', (socket) => {
     );
 
     if (!oldId) return callback({ success: false });
+
+    // Cancel grace timer for the old socket
+    if (room._graceTimers && room._graceTimers[oldId]) {
+      clearTimeout(room._graceTimers[oldId]);
+      delete room._graceTimers[oldId];
+    }
 
     // Move player data to new socket.id
     if (oldId !== socket.id) {
@@ -346,40 +354,59 @@ io.on('connection', (socket) => {
     }
   });
 
-  // ── Disconnect ────────────────────────────────────────
+  // ── Disconnect (with grace period for mobile reconnection) ──
   socket.on('disconnect', () => {
     console.log(`Disconnected: ${socket.id}`);
-    if (socket.roomCode) {
-      const room = rooms.get(socket.roomCode);
-      if (room) {
-        clearTurnTimer(room);
+    const roomCode = socket.roomCode;
+    const playerId = socket.id;
+    const playerToken = socket.playerToken;
 
-        // If game was in progress, award win to remaining player
-        if (room.phase === 'battle') {
-          const remainingId = getOpponentId(room, socket.id);
-          if (remainingId && room.players[remainingId]) {
-            const dcName = room.players[socket.id]?.name || 'Opponent';
-            endGame(room, remainingId, `${dcName} disconnected`);
-          }
-        } else {
-          socket.to(socket.roomCode).emit('opponent-disconnected');
-        }
+    if (!roomCode) return;
+    const room = rooms.get(roomCode);
+    if (!room || !room.players[playerId]) return;
 
-        // Clean up session token
-        if (socket.playerToken) {
-          // Keep session for 2 minutes for potential reconnection
-          setTimeout(() => {
-            sessions.delete(socket.playerToken);
-          }, 120000);
-        }
+    const playerName = room.players[playerId].name;
 
-        delete room.players[socket.id];
-        room.rematchVotes.delete(socket.id);
-        if (Object.keys(room.players).length === 0) {
-          rooms.delete(socket.roomCode);
-          console.log(`Room ${socket.roomCode} deleted (empty)`);
+    // Notify opponent they may have disconnected
+    socket.to(roomCode).emit('opponent-may-disconnect', { name: playerName });
+
+    // Grace period — 30 seconds to reconnect before removing
+    const graceTimer = setTimeout(() => {
+      const room = rooms.get(roomCode);
+      if (!room) return;
+
+      // Check if player reconnected (would be under a new socket.id with same name)
+      const stillHere = Object.values(room.players).some(p => p.name === playerName);
+      // Check if the exact old socket.id is still in the room (means they didn't reconnect)
+      const oldPlayerStillThere = room.players[playerId];
+
+      if (!oldPlayerStillThere) return; // Already reconnected under new id
+
+      // Player really gone — handle it
+      if (room.phase === 'battle') {
+        const remainingId = getOpponentId(room, playerId);
+        if (remainingId && room.players[remainingId]) {
+          endGame(room, remainingId, `${playerName} disconnected`);
         }
       }
+
+      io.to(roomCode).emit('opponent-disconnected');
+
+      delete room.players[playerId];
+      room.rematchVotes.delete(playerId);
+      if (Object.keys(room.players).length === 0) {
+        rooms.delete(roomCode);
+        console.log(`Room ${roomCode} deleted (empty)`);
+      }
+    }, 30000); // 30 second grace period
+
+    // Store grace timer so reconnect can cancel it
+    if (!room._graceTimers) room._graceTimers = {};
+    room._graceTimers[playerId] = graceTimer;
+
+    // Keep session token for reconnection
+    if (playerToken) {
+      setTimeout(() => sessions.delete(playerToken), 120000);
     }
   });
 });

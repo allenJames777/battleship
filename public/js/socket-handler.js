@@ -12,10 +12,12 @@ const SocketHandler = (() => {
   function connect() {
     socket = io({
       reconnection: true,
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      transports: ['websocket', 'polling']
+      reconnectionAttempts: 20,
+      reconnectionDelay: 500,
+      reconnectionDelayMax: 3000,
+      // Start with polling (works on all browsers including iOS Safari)
+      // then upgrade to websocket if available
+      transports: ['polling', 'websocket']
     });
 
     socket.on('connect', () => {
