@@ -36,9 +36,57 @@ function getOpponentId(room, myId) {
   return Object.keys(room.players).find(id => id !== myId);
 }
 
+// ── Session Recovery ────────────────────────────────────────
+// Map playerToken → { roomCode, playerName } for reconnection
+const sessions = new Map();
+
+function generateToken() {
+  return Math.random().toString(36).substring(2, 12) + Date.now().toString(36);
+}
+
 // ── Socket.io Logic ─────────────────────────────────────────
 io.on('connection', (socket) => {
   console.log(`Connected: ${socket.id}`);
+
+  // ── Reconnect with token ──────────────────────────────
+  socket.on('rejoin', ({ token }, callback) => {
+    const session = sessions.get(token);
+    if (!session) return callback({ success: false });
+
+    const room = rooms.get(session.roomCode);
+    if (!room) {
+      sessions.delete(token);
+      return callback({ success: false });
+    }
+
+    // Find old player entry (might be under old socket.id)
+    const oldId = Object.keys(room.players).find(id =>
+      room.players[id].name === session.playerName
+    );
+
+    if (!oldId) return callback({ success: false });
+
+    // Move player data to new socket.id
+    if (oldId !== socket.id) {
+      room.players[socket.id] = room.players[oldId];
+      delete room.players[oldId];
+    }
+
+    socket.join(session.roomCode);
+    socket.roomCode = session.roomCode;
+    socket.playerToken = token;
+
+    // Notify opponent
+    socket.to(session.roomCode).emit('opponent-reconnected');
+
+    callback({
+      success: true,
+      roomCode: session.roomCode,
+      phase: room.phase,
+      name: session.playerName
+    });
+    console.log(`${session.playerName} reconnected to room ${session.roomCode}`);
+  });
 
   socket.on('create-room', ({ name, timer }, callback) => {
     const code = generateRoomCode();
@@ -64,7 +112,10 @@ io.on('connection', (socket) => {
     rooms.set(code, room);
     socket.join(code);
     socket.roomCode = code;
-    callback({ success: true, code });
+    const token = generateToken();
+    socket.playerToken = token;
+    sessions.set(token, { roomCode: code, playerName: name || 'Player 1' });
+    callback({ success: true, code, token });
     console.log(`Room ${code} created by ${name || socket.id}`);
   });
 
@@ -95,9 +146,14 @@ io.on('connection', (socket) => {
     const opponentId = playerIds[0];
     const opponentName = room.players[opponentId].name;
 
+    const token = generateToken();
+    socket.playerToken = token;
+    sessions.set(token, { roomCode: code, playerName: name || 'Player 2' });
+
     callback({
       success: true,
       code,
+      token,
       opponentName,
       timerSeconds: room.timerSeconds
     });
@@ -269,7 +325,7 @@ io.on('connection', (socket) => {
   // ── Rematch (proper 2-player vote system) ─────────────
   socket.on('vote-rematch', () => {
     const room = rooms.get(socket.roomCode);
-    if (!room) return;
+    if (!room || room.phase !== 'finished') return;
 
     room.rematchVotes.add(socket.id);
     const opponentId = getOpponentId(room, socket.id);
@@ -297,7 +353,26 @@ io.on('connection', (socket) => {
       const room = rooms.get(socket.roomCode);
       if (room) {
         clearTurnTimer(room);
-        socket.to(socket.roomCode).emit('opponent-disconnected');
+
+        // If game was in progress, award win to remaining player
+        if (room.phase === 'battle') {
+          const remainingId = getOpponentId(room, socket.id);
+          if (remainingId && room.players[remainingId]) {
+            const dcName = room.players[socket.id]?.name || 'Opponent';
+            endGame(room, remainingId, `${dcName} disconnected`);
+          }
+        } else {
+          socket.to(socket.roomCode).emit('opponent-disconnected');
+        }
+
+        // Clean up session token
+        if (socket.playerToken) {
+          // Keep session for 2 minutes for potential reconnection
+          setTimeout(() => {
+            sessions.delete(socket.playerToken);
+          }, 120000);
+        }
+
         delete room.players[socket.id];
         room.rematchVotes.delete(socket.id);
         if (Object.keys(room.players).length === 0) {

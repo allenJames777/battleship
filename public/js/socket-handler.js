@@ -3,6 +3,7 @@
 const SocketHandler = (() => {
   let socket = null;
   let roomCode = null;
+  let sessionToken = null;
   let myName = '';
   let opponentName = '';
   let myWins = 0;
@@ -23,7 +24,19 @@ const SocketHandler = (() => {
 
     socket.on('reconnect', () => {
       console.log('Reconnected to server');
-      UI.showToast('Reconnected!');
+      // Try to rejoin the room with saved token
+      if (sessionToken) {
+        socket.emit('rejoin', { token: sessionToken }, (res) => {
+          if (res.success) {
+            UI.showToast('Reconnected to game!');
+          } else {
+            UI.showToast('Connection lost — could not rejoin.');
+            sessionToken = null;
+          }
+        });
+      } else {
+        UI.showToast('Reconnected!');
+      }
     });
 
     socket.on('connect_error', (err) => {
@@ -129,12 +142,18 @@ const SocketHandler = (() => {
 
   function createRoom(name, timer, callback) {
     myName = name;
-    socket.emit('create-room', { name, timer }, callback);
+    socket.emit('create-room', { name, timer }, (res) => {
+      if (res.success && res.token) sessionToken = res.token;
+      callback(res);
+    });
   }
 
   function joinRoom(code, name, callback) {
     myName = name;
-    socket.emit('join-room', { code, name }, callback);
+    socket.emit('join-room', { code, name }, (res) => {
+      if (res.success && res.token) sessionToken = res.token;
+      callback(res);
+    });
   }
 
   function sendShips(ships, callback) {
