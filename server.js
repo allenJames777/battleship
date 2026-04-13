@@ -6,7 +6,11 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: '*' }
+  cors: { origin: '*' },
+  // Longer timeouts for mobile browsers (iOS/Android)
+  pingTimeout: 30000,
+  pingInterval: 10000,
+  transports: ['websocket', 'polling']
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -26,6 +30,10 @@ function generateRoomCode() {
 
 function createEmptyBoard() {
   return Array.from({ length: 10 }, () => Array(10).fill(null));
+}
+
+function getOpponentId(room, myId) {
+  return Object.keys(room.players).find(id => id !== myId);
 }
 
 // ── Socket.io Logic ─────────────────────────────────────────
@@ -49,14 +57,14 @@ io.on('connection', (socket) => {
       turn: null,
       phase: 'placement',
       winner: null,
-      timerSeconds: timer || 0, // 0 = no timer
-      turnTimer: null
+      timerSeconds: timer || 0,
+      turnTimer: null,
+      rematchVotes: new Set()
     };
     rooms.set(code, room);
     socket.join(code);
     socket.roomCode = code;
-    socket.playerIndex = 0;
-    callback({ success: true, code, playerIndex: 0 });
+    callback({ success: true, code });
     console.log(`Room ${code} created by ${name || socket.id}`);
   });
 
@@ -83,21 +91,17 @@ io.on('connection', (socket) => {
     };
     socket.join(code);
     socket.roomCode = code;
-    socket.playerIndex = 1;
 
-    // Send opponent info
     const opponentId = playerIds[0];
     const opponentName = room.players[opponentId].name;
 
     callback({
       success: true,
       code,
-      playerIndex: 1,
       opponentName,
       timerSeconds: room.timerSeconds
     });
 
-    // Notify the other player with joiner's name
     socket.to(code).emit('opponent-joined', { name: name || 'Player 2' });
     console.log(`${name || socket.id} joined room ${code}`);
   });
@@ -140,7 +144,6 @@ io.on('connection', (socket) => {
       room.phase = 'battle';
       room.turn = playerIds[Math.floor(Math.random() * 2)];
 
-      // Send game-start with names and scores
       for (const pid of playerIds) {
         const opId = playerIds.find(id => id !== pid);
         io.to(pid).emit('game-start', {
@@ -152,7 +155,6 @@ io.on('connection', (socket) => {
           timerSeconds: room.timerSeconds
         });
       }
-      // Start turn timer
       startTurnTimer(room);
       console.log(`Room ${socket.roomCode}: battle started`);
     } else {
@@ -168,10 +170,9 @@ io.on('connection', (socket) => {
       return callback({ success: false, error: 'Not your turn.' });
     }
 
-    // Clear turn timer
     clearTurnTimer(room);
 
-    const opponentId = Object.keys(room.players).find(id => id !== socket.id);
+    const opponentId = getOpponentId(room, socket.id);
     if (!opponentId) return;
 
     const opponentBoard = room.players[opponentId].board;
@@ -201,27 +202,11 @@ io.on('connection', (socket) => {
             break;
           }
         }
-        if (isSunk) {
-          sunkShip = shipDef;
-        }
+        if (isSunk) sunkShip = shipDef;
       }
 
-      // Check for win (22 total ship cells)
       if (room.players[socket.id].hits >= 22) {
-        room.phase = 'finished';
-        room.winner = socket.id;
-        room.players[socket.id].wins++;
-
-        const playerIds = Object.keys(room.players);
-        for (const pid of playerIds) {
-          const opId = playerIds.find(id => id !== pid);
-          io.to(pid).emit('game-over', {
-            won: pid === socket.id,
-            myWins: room.players[pid].wins,
-            opponentWins: room.players[opId].wins
-          });
-        }
-        console.log(`Room ${socket.roomCode}: ${room.players[socket.id].name} wins!`);
+        endGame(room, socket.id);
       }
     } else {
       opponentBoard[row][col] = 'miss';
@@ -237,13 +222,10 @@ io.on('connection', (socket) => {
     });
 
     io.to(opponentId).emit('incoming-fire', {
-      row,
-      col,
-      result,
+      row, col, result,
       sunkShip: sunkShip ? sunkShip.name : null
     });
 
-    // Switch turns only on MISS
     if (room.phase === 'battle') {
       if (result === 'miss') {
         room.turn = opponentId;
@@ -255,6 +237,21 @@ io.on('connection', (socket) => {
       }
       startTurnTimer(room);
     }
+  });
+
+  // ── Surrender ─────────────────────────────────────────
+  socket.on('surrender', () => {
+    const room = rooms.get(socket.roomCode);
+    if (!room || room.phase !== 'battle') return;
+
+    const opponentId = getOpponentId(room, socket.id);
+    if (!opponentId) return;
+
+    const surrenderName = room.players[socket.id]?.name || 'Player';
+    console.log(`Room ${socket.roomCode}: ${surrenderName} surrendered`);
+
+    // Opponent wins
+    endGame(room, opponentId, surrenderName + ' surrendered!');
   });
 
   // ── Chat ──────────────────────────────────────────────
@@ -269,31 +266,28 @@ io.on('connection', (socket) => {
     });
   });
 
-  // ── Rematch ───────────────────────────────────────────
-  socket.on('request-rematch', () => {
-    const room = rooms.get(socket.roomCode);
-    if (!room) return;
-    socket.to(socket.roomCode).emit('rematch-requested');
-  });
-
-  socket.on('accept-rematch', () => {
+  // ── Rematch (proper 2-player vote system) ─────────────
+  socket.on('vote-rematch', () => {
     const room = rooms.get(socket.roomCode);
     if (!room) return;
 
-    clearTurnTimer(room);
+    room.rematchVotes.add(socket.id);
+    const opponentId = getOpponentId(room, socket.id);
 
-    for (const pid of Object.keys(room.players)) {
-      room.players[pid].board = createEmptyBoard();
-      room.players[pid].ships = [];
-      room.players[pid].ready = false;
-      room.players[pid].hits = 0;
-      // wins persist across rematches
+    if (room.rematchVotes.size >= 2) {
+      // Both voted — start rematch
+      room.rematchVotes.clear();
+      resetRoomForRematch(room);
+      io.to(socket.roomCode).emit('rematch-start');
+      console.log(`Room ${socket.roomCode}: rematch starting`);
+    } else {
+      // Notify opponent
+      if (opponentId) {
+        io.to(opponentId).emit('rematch-requested');
+      }
+      // Confirm to voter
+      socket.emit('rematch-voted');
     }
-    room.phase = 'placement';
-    room.turn = null;
-    room.winner = null;
-
-    io.to(socket.roomCode).emit('rematch-start');
   });
 
   // ── Disconnect ────────────────────────────────────────
@@ -305,6 +299,7 @@ io.on('connection', (socket) => {
         clearTurnTimer(room);
         socket.to(socket.roomCode).emit('opponent-disconnected');
         delete room.players[socket.id];
+        room.rematchVotes.delete(socket.id);
         if (Object.keys(room.players).length === 0) {
           rooms.delete(socket.roomCode);
           console.log(`Room ${socket.roomCode} deleted (empty)`);
@@ -314,13 +309,46 @@ io.on('connection', (socket) => {
   });
 });
 
+// ── Helper: End game with a winner ──────────────────────────
+function endGame(room, winnerId, reason) {
+  room.phase = 'finished';
+  room.winner = winnerId;
+  room.players[winnerId].wins++;
+  clearTurnTimer(room);
+  room.rematchVotes.clear();
+
+  const playerIds = Object.keys(room.players);
+  for (const pid of playerIds) {
+    const opId = playerIds.find(id => id !== pid);
+    io.to(pid).emit('game-over', {
+      won: pid === winnerId,
+      myWins: room.players[pid].wins,
+      opponentWins: room.players[opId].wins,
+      reason: reason || null
+    });
+  }
+}
+
+// ── Helper: Reset room for rematch ──────────────────────────
+function resetRoomForRematch(room) {
+  clearTurnTimer(room);
+  for (const pid of Object.keys(room.players)) {
+    room.players[pid].board = createEmptyBoard();
+    room.players[pid].ships = [];
+    room.players[pid].ready = false;
+    room.players[pid].hits = 0;
+  }
+  room.phase = 'placement';
+  room.turn = null;
+  room.winner = null;
+}
+
 // ── Turn Timer Logic ────────────────────────────────────────
 function startTurnTimer(room) {
   clearTurnTimer(room);
   if (!room.timerSeconds || room.timerSeconds <= 0) return;
   if (room.phase !== 'battle' || !room.turn) return;
 
-  // Notify both players timer started
   const playerIds = Object.keys(room.players);
   for (const pid of playerIds) {
     io.to(pid).emit('timer-start', { seconds: room.timerSeconds });
@@ -333,7 +361,6 @@ function startTurnTimer(room) {
     const opponentId = playerIds.find(id => id !== currentPlayer);
     if (!opponentId) return;
 
-    // Time's up — skip turn
     room.turn = opponentId;
     io.to(currentPlayer).emit('turn-update', { myTurn: false, timeout: true });
     io.to(opponentId).emit('turn-update', { myTurn: true, timeout: false });

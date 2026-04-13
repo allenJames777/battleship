@@ -576,6 +576,15 @@ html, body {
   padding: 6px 0; width: 100%; flex-wrap: wrap;
 }
 
+.btn-surrender {
+  color: var(--red) !important;
+  border-color: rgba(255,51,85,0.3) !important;
+}
+.btn-surrender:hover {
+  border-color: var(--red) !important;
+  background: rgba(255,51,85,0.1) !important;
+}
+
 .btn-chat-toggle {
   position: relative;
 }

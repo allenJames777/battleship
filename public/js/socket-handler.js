@@ -3,17 +3,31 @@
 const SocketHandler = (() => {
   let socket = null;
   let roomCode = null;
-  let playerIndex = null;
   let myName = '';
   let opponentName = '';
   let myWins = 0;
   let opponentWins = 0;
 
   function connect() {
-    socket = io();
+    socket = io({
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      transports: ['websocket', 'polling']
+    });
 
     socket.on('connect', () => {
       console.log('Connected to server');
+    });
+
+    socket.on('reconnect', () => {
+      console.log('Reconnected to server');
+      UI.showToast('Reconnected!');
+    });
+
+    socket.on('connect_error', (err) => {
+      console.log('Connection error:', err.message);
     });
 
     socket.on('opponent-joined', ({ name }) => {
@@ -74,7 +88,7 @@ const SocketHandler = (() => {
       }
     });
 
-    socket.on('game-over', ({ won, myWins: mw, opponentWins: ow }) => {
+    socket.on('game-over', ({ won, myWins: mw, opponentWins: ow, reason }) => {
       myWins = mw;
       opponentWins = ow;
       if (won) {
@@ -82,7 +96,7 @@ const SocketHandler = (() => {
       } else {
         SoundManager.playLose();
       }
-      UI.goToGameOver(won, myName, opponentName, myWins, opponentWins);
+      UI.goToGameOver(won, myName, opponentName, myWins, opponentWins, reason);
     });
 
     socket.on('opponent-disconnected', () => {
@@ -90,9 +104,14 @@ const SocketHandler = (() => {
       UI.addLog('Opponent disconnected.', 'system');
     });
 
+    // Rematch flow — proper vote system
     socket.on('rematch-requested', () => {
       UI.showToast('Opponent wants a rematch!');
       UI.showRematchStatus('Opponent wants a rematch — click Rematch to accept.');
+    });
+
+    socket.on('rematch-voted', () => {
+      UI.showRematchStatus('Waiting for opponent…');
     });
 
     socket.on('rematch-start', () => {
@@ -131,12 +150,12 @@ const SocketHandler = (() => {
     UI.addChatMessage(myName, msg, true);
   }
 
-  function requestRematch() {
-    socket.emit('request-rematch');
+  function voteRematch() {
+    socket.emit('vote-rematch');
   }
 
-  function acceptRematch() {
-    socket.emit('accept-rematch');
+  function surrender() {
+    socket.emit('surrender');
   }
 
   function coordLabel(row, col) {
@@ -150,12 +169,10 @@ const SocketHandler = (() => {
     sendShips,
     fire,
     sendChat,
-    requestRematch,
-    acceptRematch,
+    voteRematch,
+    surrender,
     get roomCode() { return roomCode; },
     set roomCode(v) { roomCode = v; },
-    get playerIndex() { return playerIndex; },
-    set playerIndex(v) { playerIndex = v; },
     get myName() { return myName; },
     get opponentName() { return opponentName; },
     set opponentName(v) { opponentName = v; },

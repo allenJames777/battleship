@@ -810,20 +810,28 @@ const UI = (() => {
     });
   }
 
-  function goToGameOver(won, myName, oppName, myWins, oppWins) {
+  function goToGameOver(won, myName, oppName, myWins, oppWins, reason) {
     Ocean.stopAnimation();
     clearTimerInterval();
     els.gameoverIcon.textContent = won ? '🏆' : '💀';
     els.gameoverTitle.textContent = won ? 'VICTORY!' : 'DEFEAT';
     els.gameoverTitle.className = won ? 'win' : 'lose';
-    els.gameoverSubtitle.textContent = won
-      ? 'All enemy ships destroyed. Well played, Commander!'
-      : 'Your fleet has been destroyed. Better luck next time.';
+
+    let subtitle;
+    if (reason) {
+      subtitle = reason;
+    } else if (won) {
+      subtitle = 'All enemy ships destroyed. Well played, Commander!';
+    } else {
+      subtitle = 'Your fleet has been destroyed. Better luck next time.';
+    }
+    els.gameoverSubtitle.textContent = subtitle;
+
     if (myName && oppName) {
       els.gameoverScore.textContent = `${myName}: ${myWins} — ${oppWins}: ${oppName}`;
     }
     els.rematchStatus.textContent = '';
-    // Close chat panel
+    els.btnRematch.disabled = false;
     els.chatPanel.classList.remove('open');
     showScreen('gameover');
   }
@@ -1074,11 +1082,11 @@ const UI = (() => {
       });
     });
 
-    // Game Over: Rematch
+    // Game Over: Rematch (vote system — both must click)
     els.btnRematch.addEventListener('click', () => {
-      SocketHandler.requestRematch();
-      SocketHandler.acceptRematch();
-      showRematchStatus('Requesting rematch…');
+      SocketHandler.voteRematch();
+      showRematchStatus('Waiting for opponent…');
+      els.btnRematch.disabled = true;
     });
 
     // Game Over: Home
@@ -1112,6 +1120,22 @@ const UI = (() => {
 
     els.chatInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') els.btnChatSend.click();
+    });
+
+    // ── Surrender ─────────────────────────────────────
+    const modalSurrender = document.getElementById('modal-surrender');
+    document.getElementById('btn-surrender').addEventListener('click', () => {
+      modalSurrender.style.display = 'flex';
+    });
+    document.getElementById('btn-surrender-yes').addEventListener('click', () => {
+      modalSurrender.style.display = 'none';
+      SocketHandler.surrender();
+    });
+    document.getElementById('btn-surrender-no').addEventListener('click', () => {
+      modalSurrender.style.display = 'none';
+    });
+    modalSurrender.addEventListener('click', (e) => {
+      if (e.target === modalSurrender) modalSurrender.style.display = 'none';
     });
   }
 
